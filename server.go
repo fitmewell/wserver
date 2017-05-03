@@ -69,7 +69,11 @@ func (ws *WServer) listen() {
 		log.Print(err)
 	}
 }
-
+/**
+'method' support method , use * to support all method
+'path' path
+'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct wserver context
+ */
 func (ws *WServer)AddHandler(method string, path string, e interface{}) *WServer {
 	ws.handler.addHandler(method, path, e)
 	return ws

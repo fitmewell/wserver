@@ -36,7 +36,7 @@ func NewDefaultHandler(wServer *WServer) (h *handler) {
 
 func (h *handler)ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	tmp_session := h.wServer.sessionManager.Sync(resp, req)
-	servletContext := &DefaultServletContext{ServerContext:h.wServer.context, Session:tmp_session}
+	servletContext := &DefaultServletContext{ServerContext:h.wServer.context, Session:tmp_session, data:map[string]interface{}{}}
 	if !h.handlerTree.AspectBefore(servletContext, resp, req) {
 		return
 	}

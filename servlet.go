@@ -4,9 +4,15 @@ import "io"
 
 type ServletContext interface {
 	ServerContext
+
+	//Get servlet session
 	GetSession() *session
-	GetData() interface{}
-	SetData(interface{})
+
+	//get data stored in servlet
+	GetData() map[string]interface{}
+
+	//set data store in servlet
+	SetData(key string, value interface{})
 }
 
 /**
@@ -15,7 +21,7 @@ type ServletContext interface {
 type DefaultServletContext struct {
 	ServerContext ServerContext
 	Session       *session
-	data          interface{}
+	data          map[string]interface{}
 }
 
 func (defaultContext *DefaultServletContext)GetDb() BufferedDB {
@@ -34,13 +40,12 @@ func (defaultContext *DefaultServletContext)ContainsProperty(key string) bool {
 	return defaultContext.ServerContext.ContainsProperty(key)
 }
 
-func (defaultContext *DefaultServletContext)GetData() interface{} {
-
+func (defaultContext *DefaultServletContext)GetData() map[string]interface{} {
 	return defaultContext.data
 }
 
-func (defaultContext *DefaultServletContext)SetData(data interface{}) {
-	defaultContext.data = data
+func (defaultContext *DefaultServletContext)SetData(key string, value interface{}) {
+	defaultContext.data[key] = value
 }
 
 func (defaultContext *DefaultServletContext)ExecuteTemplate(wr io.Writer, name string, data interface{}) error {

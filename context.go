@@ -8,10 +8,19 @@ import (
 )
 
 type ServerContext interface {
+	//return default db
 	GetDb() BufferedDB
+
+	//return select db
 	GetSelectDb(string) BufferedDB
+
+	//write to write by template name
 	ExecuteTemplate(io.Writer, string, interface{}) error
+
+	//get system properties
 	GetProperty(string) string
+
+	//judge if properties exists
 	ContainsProperty(string) bool
 }
 

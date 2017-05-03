@@ -3,7 +3,7 @@ A golang http framework
 
 To use this module you can use the sample below
 `sample.go`
-```golang
+```go
 package main
 
 import (
