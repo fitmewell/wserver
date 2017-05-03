@@ -14,7 +14,7 @@ type handlerTree interface {
 
 func NewDefaultHandlerTree() handlerTree {
 	defaultTree := &defaultHandlerTree{}
-	defaultTree.rootNode = &defaultHandlerTreeNode{tree:defaultTree, Path:"", PathKey:"", childNodes: map[string]handlerTreeNode{}}
+	defaultTree.rootNode = &defaultHandlerTreeNode{tree:defaultTree, Path:"", PathKey:"", handlers: map[string]interface{}{},childNodes: map[string]handlerTreeNode{}}
 	return defaultTree
 }
 

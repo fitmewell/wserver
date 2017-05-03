@@ -28,26 +28,26 @@ type WServer struct {
 	sessionManager SessionManager
 }
 
-func (wServer *WServer)Start() {
-	wServer.lock.Lock()
+func (ws *WServer)Start() {
+	ws.lock.Lock()
 	defer func() {
-		wServer.started = false
+		ws.started = false
 		debug("end")
-		wServer.lock.Unlock()
+		ws.lock.Unlock()
 	}()
 
-	if wServer.started {
+	if ws.started {
 		log.Fatal("Server already started")
 	}
-	wServer.started = true
-	wServer.context = NewContextFrom(wServer.config)
+	ws.started = true
+	ws.context = NewContextFrom(ws.config)
 	debug("started")
-	wServer.Listen()
+	ws.listen()
 }
-func (wServer *WServer) Listen() {
+func (ws *WServer) listen() {
 
 	var err error
-	config := wServer.config
+	config := ws.config
 	if config.UseSSL {
 		go func() {
 			httpServerMux := http.NewServeMux()
@@ -59,10 +59,10 @@ func (wServer *WServer) Listen() {
 				log.Fatalf("ListenAndServe error: %v", err)
 			}
 		}()
-		s := &http.Server{Addr: ":" + config.SSLConfig.SSLPort, Handler:wServer.handler}
+		s := &http.Server{Addr: ":" + config.SSLConfig.SSLPort, Handler:ws.handler}
 		err = s.ListenAndServeTLS(config.SSLConfig.CertFile, config.SSLConfig.KeyFile)
 	} else {
-		s := &http.Server{Addr: ":" + config.Port, Handler:wServer.handler}
+		s := &http.Server{Addr: ":" + config.Port, Handler:ws.handler}
 		err = s.ListenAndServe()
 	}
 	if err != nil {
@@ -70,12 +70,12 @@ func (wServer *WServer) Listen() {
 	}
 }
 
-func (wServer *WServer)AddHandler(method string, path string, e interface{}) *WServer {
-	wServer.handler.addHandler(method, path, e)
-	return wServer
+func (ws *WServer)AddHandler(method string, path string, e interface{}) *WServer {
+	ws.handler.addHandler(method, path, e)
+	return ws
 }
 
-func (wServer *WServer)AddAspectHandler(handler AspectHandler) *WServer {
-	wServer.handler.addAspect(handler)
-	return wServer
+func (ws *WServer)AddAspectHandler(handler AspectHandler) *WServer {
+	ws.handler.addAspect(handler)
+	return ws
 }
