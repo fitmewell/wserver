@@ -29,6 +29,7 @@ type Database struct {
 	Charset        string
 	DbName         string
 	MaxConnections int
+	DriverName     string
 }
 
 type SSLConfig struct {

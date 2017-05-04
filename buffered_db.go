@@ -1,7 +1,6 @@
 package wserver
 
 import (
-	_ "github.com/go-sql-driver/mysql"//MySqlDriver
 	"database/sql"
 	"reflect"
 	"strconv"

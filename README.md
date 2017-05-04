@@ -1,7 +1,7 @@
 # wserver
 A golang http framework 
 
-To use this module you can use the sample below
+To use this module you the sample below
 `sample.go`
 ```go
 package main
@@ -26,7 +26,7 @@ func main() {
 {
   "Port": "8080",
   "UseSSL": false,
-  "SSLConfig": {
+  "SSLConfig": { //necessary when using https 
     "SSLPort": "443",
     "CertFile": "~/key/fullchain.pem",
     "KeyFile": "~/key/privkey.pem"
@@ -42,7 +42,8 @@ func main() {
       "Password": "test",
       "Charset": "utf8",
       "DBName": "test",
-      "MaxConnections": 30
+      "MaxConnections": 30,
+      "DriverName": "mysql"//remember to import db driver
     }
   ],
   "StaticResources": [

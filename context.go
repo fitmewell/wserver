@@ -61,7 +61,7 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 	dbs := map[string]BufferedDB{}
 	var defaultDb BufferedDB = nil
 	for _, dbConfig := range config.Databases {
-		db, err := sql.Open("mysql", dbConfig.GenerateUrl())
+		db, err := sql.Open(dbConfig.DriverName, dbConfig.GenerateUrl())
 		if err != nil {
 			log.Fatal("db {} connection failed ", dbConfig.DbName, err)
 		}
