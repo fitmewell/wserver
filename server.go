@@ -12,8 +12,8 @@ func New(filePath string) (wServer *WServer, err error) {
 		return nil, err
 	}
 	wServer = &WServer{
-		config:config,
-		sessionManager:NewDefaultSessionManager(config),
+		config:         config,
+		sessionManager: NewDefaultSessionManager(config),
 	}
 	wServer.handler = NewDefaultHandler(wServer)
 	return
@@ -28,7 +28,7 @@ type WServer struct {
 	sessionManager SessionManager
 }
 
-func (ws *WServer)Start() {
+func (ws *WServer) Start() {
 	ws.lock.Lock()
 	defer func() {
 		ws.started = false
@@ -52,34 +52,35 @@ func (ws *WServer) listen() {
 		go func() {
 			httpServerMux := http.NewServeMux()
 			httpServerMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-				http.Redirect(w, r, "https:" + r.Host + ":443" + r.RequestURI, http.StatusMovedPermanently)
+				http.Redirect(w, r, "https:"+r.Host+":443"+r.RequestURI, http.StatusMovedPermanently)
 			})
 			s := &http.Server{Addr: ":" + config.Port, Handler: httpServerMux}
 			if err := s.ListenAndServe(); err != nil {
 				log.Fatalf("ListenAndServe error: %v", err)
 			}
 		}()
-		s := &http.Server{Addr: ":" + config.SSLConfig.SSLPort, Handler:ws.handler}
+		s := &http.Server{Addr: ":" + config.SSLConfig.SSLPort, Handler: ws.handler}
 		err = s.ListenAndServeTLS(config.SSLConfig.CertFile, config.SSLConfig.KeyFile)
 	} else {
-		s := &http.Server{Addr: ":" + config.Port, Handler:ws.handler}
+		s := &http.Server{Addr: ":" + config.Port, Handler: ws.handler}
 		err = s.ListenAndServe()
 	}
 	if err != nil {
 		log.Print(err)
 	}
 }
+
 /**
 'method' support method , use * to support all method
 'path' path
 'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct wserver context
- */
-func (ws *WServer)AddHandler(method string, path string, e interface{}) *WServer {
+*/
+func (ws *WServer) AddHandler(method string, path string, e interface{}) *WServer {
 	ws.handler.addHandler(method, path, e)
 	return ws
 }
 
-func (ws *WServer)AddAspectHandler(handler AspectHandler) *WServer {
+func (ws *WServer) AddAspectHandler(handler AspectHandler) *WServer {
 	ws.handler.addAspect(handler)
 	return ws
 }

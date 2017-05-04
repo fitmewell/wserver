@@ -1,9 +1,9 @@
 package wserver
 
 import (
-	"io"
-	"html/template"
 	"database/sql"
+	"html/template"
+	"io"
 	"log"
 )
 
@@ -31,24 +31,24 @@ type DefaultServerContext struct {
 	properties map[string]string
 }
 
-func (defaultContext *DefaultServerContext)GetDb() BufferedDB {
+func (defaultContext *DefaultServerContext) GetDb() BufferedDB {
 	return defaultContext.defaultDb
 }
 
-func (defaultContext *DefaultServerContext)GetSelectDb(dbName string) BufferedDB {
+func (defaultContext *DefaultServerContext) GetSelectDb(dbName string) BufferedDB {
 	return defaultContext.dbs[dbName]
 }
 
-func (defaultContext *DefaultServerContext)GetProperty(key string) string {
+func (defaultContext *DefaultServerContext) GetProperty(key string) string {
 	return defaultContext.properties[key]
 }
 
-func (defaultContext *DefaultServerContext)ContainsProperty(key string) bool {
+func (defaultContext *DefaultServerContext) ContainsProperty(key string) bool {
 	_, ok := defaultContext.properties[key]
 	return ok
 }
 
-func (defaultContext *DefaultServerContext)ExecuteTemplate(wr io.Writer, name string, data interface{}) error {
+func (defaultContext *DefaultServerContext) ExecuteTemplate(wr io.Writer, name string, data interface{}) error {
 	return defaultContext.template.ExecuteTemplate(wr, name, data)
 }
 
@@ -81,5 +81,5 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 		properties[key] = value
 	}
 
-	return &DefaultServerContext{defaultDb:defaultDb, dbs:dbs, template:temp, properties:properties}
+	return &DefaultServerContext{defaultDb: defaultDb, dbs: dbs, template: temp, properties: properties}
 }

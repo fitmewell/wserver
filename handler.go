@@ -1,13 +1,13 @@
 package wserver
 
 import (
-	"strings"
+	"encoding/json"
+	"encoding/xml"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"reflect"
-	"encoding/json"
-	"io/ioutil"
-	"encoding/xml"
-	"log"
+	"strings"
 )
 
 type handler struct {
@@ -16,14 +16,14 @@ type handler struct {
 }
 
 func NewDefaultHandler(wServer *WServer) (h *handler) {
-	h = &handler{wServer:wServer, handlerTree:NewDefaultHandlerTree()}
+	h = &handler{wServer: wServer, handlerTree: NewDefaultHandlerTree()}
 	for _, resource := range wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
-			path = path[0:len(path) - 2]
+			path = path[0 : len(path)-2]
 		}
 		if strings.HasSuffix(path, "*") {
-			path = path[0:len(path) - 1]
+			path = path[0 : len(path)-1]
 		}
 		t := http.StripPrefix(path, http.FileServer(http.Dir(resource.FileLocate)))
 		h.addHandler("GET", resource.Path, func(context ServletContext, resp http.ResponseWriter, req *http.Request) error {
@@ -34,9 +34,9 @@ func NewDefaultHandler(wServer *WServer) (h *handler) {
 	return
 }
 
-func (h *handler)ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	tmp_session := h.wServer.sessionManager.Sync(resp, req)
-	servletContext := &DefaultServletContext{ServerContext:h.wServer.context, Session:tmp_session, data:map[string]interface{}{}}
+	servletContext := &DefaultServletContext{ServerContext: h.wServer.context, Session: tmp_session, data: map[string]interface{}{}}
 	if !h.handlerTree.AspectBefore(servletContext, resp, req) {
 		return
 	}
@@ -69,24 +69,24 @@ func (h *handler)ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *handler)addHandler(method string, path string, e interface{}) *handler {
+func (h *handler) addHandler(method string, path string, e interface{}) *handler {
 	h.handlerTree.AddHandler(method, path, e)
 	return h
 }
 
-func (h *handler)addAspect(a AspectHandler) *handler {
+func (h *handler) addAspect(a AspectHandler) *handler {
 	h.handlerTree.AddAspect(a)
 	return h
 }
 
 var (
-	respKind reflect.Type = reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()
-	reqKind reflect.Type = reflect.TypeOf((*http.Request)(nil)).Elem()
+	respKind    reflect.Type = reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()
+	reqKind     reflect.Type = reflect.TypeOf((*http.Request)(nil)).Elem()
 	contextKind reflect.Type = reflect.TypeOf((*ServletContext)(nil)).Elem()
-	errorKind reflect.Type = reflect.TypeOf((error)(nil))
+	errorKind   reflect.Type = reflect.TypeOf((error)(nil))
 )
 
-func (h *handler)handle(context ServletContext, resp http.ResponseWriter, req *http.Request, m interface{}) (err error) {
+func (h *handler) handle(context ServletContext, resp http.ResponseWriter, req *http.Request, m interface{}) (err error) {
 	t := reflect.TypeOf(m)
 	v := reflect.ValueOf(m)
 	n := t.NumIn()
@@ -164,7 +164,7 @@ func (h *handler)handle(context ServletContext, resp http.ResponseWriter, req *h
 			}
 			resp.Write(tb)
 		case reflect.Slice:
-			switch out.Type().Elem().Kind(){
+			switch out.Type().Elem().Kind() {
 			case reflect.Uint8:
 				resp.Write(out.Interface().([]byte))
 			default:

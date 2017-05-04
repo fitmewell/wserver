@@ -1,11 +1,10 @@
 package wserver
 
 import (
-	"strings"
-	"net/http"
 	"errors"
+	"net/http"
+	"strings"
 )
-
 
 type handlerTreeNode interface {
 	hasChild(path string) bool
@@ -38,11 +37,11 @@ func (t *defaultHandlerTreeNode) getChild(path string) handlerTreeNode {
 		restPath := ""
 		if i := strings.Index(key, "/"); i > -1 {
 			key = path[0:i]
-			restPath = path[i + 1:]
+			restPath = path[i+1:]
 		}
 		if child, ok := t.childNodes[key]; ok {
 			return child.getChild(restPath)
-		} else if child, ok := t.childNodes["*"]; ok&&!strings.Contains(restPath, "/"){
+		} else if child, ok := t.childNodes["*"]; ok && !strings.Contains(restPath, "/") {
 			return child
 		} else if child, ok := t.childNodes["**"]; ok {
 			return child

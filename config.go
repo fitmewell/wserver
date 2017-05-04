@@ -1,8 +1,8 @@
 package wserver
 
 import (
-	"io/ioutil"
 	"encoding/json"
+	"io/ioutil"
 )
 
 func NewConfig(path string) (*ServerConfig, error) {

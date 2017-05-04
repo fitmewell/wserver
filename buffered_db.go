@@ -2,17 +2,17 @@ package wserver
 
 import (
 	"database/sql"
+	"log"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
-	"log"
 	"time"
-	"regexp"
 )
 
 type BufferedState interface {
 	//execute the sequence by combine sqlState and parameters , all the state will be stored
-	ExecutePreparedSql(sqlState string, parameters...interface{}) (sql.Result, error)
+	ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error)
 
 	//use #{} as symbol in sequence and get related value from interface in and return the query result
 	ExecuteDbSequence(sequence string, in interface{}) (sql.Result, error)
@@ -86,7 +86,7 @@ func (bdb *defaultBdb) getPreparedStatement(sqlSentence string) (*sql.Stmt, erro
 	}
 }
 
-func (bdb *defaultBdb) ExecutePreparedSql(sqlState string, parameters...interface{}) (sql.Result, error) {
+func (bdb *defaultBdb) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
 	sqlStmt, err := bdb.getPreparedStatement(sqlState)
 	if err != nil {
 		return nil, err
@@ -117,11 +117,11 @@ func (btx *defaultBtx) SelectInInterface(sqlSequence string, v interface{}, para
 	return selectInInterface(sqlStmt, v, parameters...)
 }
 
-func (btx *defaultBtx)getPreparedStatement(sqlSentence string) (*sql.Stmt, error) {
+func (btx *defaultBtx) getPreparedStatement(sqlSentence string) (*sql.Stmt, error) {
 	return btx.Prepare(sqlSentence)
 }
 
-func (btx *defaultBtx) ExecutePreparedSql(sqlState string, parameters...interface{}) (sql.Result, error) {
+func (btx *defaultBtx) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
 	sqlStmt, err := btx.getPreparedStatement(sqlState)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func (btx *defaultBtx) Commit() error {
 	return btx.Tx.Commit()
 }
 
-func (btx *defaultBtx)Rollback() error {
+func (btx *defaultBtx) Rollback() error {
 	return btx.Tx.Rollback()
 }
 
@@ -172,7 +172,7 @@ func getParameterValues(object interface{}, names string) interface{} {
 	splitIndex := strings.Index(names, ".")
 	if splitIndex > 0 {
 		name = names[0:splitIndex]
-		restName = names[splitIndex + 1:]
+		restName = names[splitIndex+1:]
 	}
 	name = strings.ToUpper(name[0:1]) + name[1:]
 
@@ -190,7 +190,7 @@ func getParameterValues(object interface{}, names string) interface{} {
 func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface{}) (err error) {
 	var rows *sql.Rows
 
-	if (parameters == nil || len(parameters) == 0) {
+	if parameters == nil || len(parameters) == 0 {
 		rows, err = sqlStmt.Query()
 	} else {
 		rows, err = sqlStmt.Query(parameters...)
@@ -213,7 +213,7 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 		valueOfBean = valueOfBean.Elem()
 	}
 	isArray := typeOfBean.Kind() == reflect.Array || typeOfBean.Kind() == reflect.Slice
-	if (isArray) {
+	if isArray {
 		actualType = typeOfBean.Elem()
 	} else {
 		actualType = typeOfBean
@@ -297,7 +297,7 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 				continue
 			}
 		}
-		if (isArray == false) {
+		if isArray == false {
 			return err
 		} else {
 			n := valueOfBean.Len()
@@ -339,7 +339,7 @@ func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCach
 						filedColumnName = strings.ToLower(strings.Replace(filedColumnName, "_", "", -1))
 					}
 					columnName = strings.ToLower(strings.Replace(columnName, "_", "", -1))
-					if (filedColumnName == columnName) {
+					if filedColumnName == columnName {
 						columnCache[i] = j
 						break
 					} else {
@@ -348,7 +348,7 @@ func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCach
 				}
 			}
 		}
-		if (matchedPool == nil) {
+		if matchedPool == nil {
 			matchedPool = make(map[reflect.Type][]int)
 		}
 		matchedPool[actualType] = columnCache

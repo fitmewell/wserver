@@ -1,11 +1,11 @@
 package wserver
 
 import (
-	"time"
-	"io"
-	"encoding/base64"
 	"crypto/rand"
+	"encoding/base64"
+	"io"
 	"net/http"
+	"time"
 )
 
 type session struct {
@@ -15,22 +15,22 @@ type session struct {
 	ExpireTime time.Time
 }
 
-func (ds *session)Get(key string) interface{} {
+func (ds *session) Get(key string) interface{} {
 	return ds.Properties[key]
 }
-func (ds *session)Set(key string, value interface{}) {
+func (ds *session) Set(key string, value interface{}) {
 	ds.Properties[key] = value
 }
-func (ds *session)Del(key string) {
+func (ds *session) Del(key string) {
 	delete(ds.Properties, key)
 }
-func (ds *session)GetCreateTime() time.Time {
+func (ds *session) GetCreateTime() time.Time {
 	return ds.CreateTime
 }
-func (ds *session)GetExpireTime() time.Time {
+func (ds *session) GetExpireTime() time.Time {
 	return ds.ExpireTime
 }
-func (ds *session)IsExpire() bool {
+func (ds *session) IsExpire() bool {
 	return time.Now().After(ds.GetExpireTime())
 }
 
@@ -50,19 +50,19 @@ type defaultSessionManager struct {
 	lifeTime   time.Duration
 }
 
-func (ds *defaultSessionManager)NewSession() *session {
-	tmpSession := &session{Name:ds.NewId(), Properties:map[string]interface{}{}, CreateTime:time.Now(), ExpireTime:time.Now().Add(ds.lifeTime)}
+func (ds *defaultSessionManager) NewSession() *session {
+	tmpSession := &session{Name: ds.NewId(), Properties: map[string]interface{}{}, CreateTime: time.Now(), ExpireTime: time.Now().Add(ds.lifeTime)}
 	ds.sessionMap[tmpSession.Name] = tmpSession
 	return tmpSession
 }
-func (ds *defaultSessionManager)DeleteSession(key string) error {
+func (ds *defaultSessionManager) DeleteSession(key string) error {
 	delete(ds.sessionMap, key)
 	return nil
 }
-func (ds *defaultSessionManager)GetSession(key string) *session {
+func (ds *defaultSessionManager) GetSession(key string) *session {
 	return ds.sessionMap[key]
 }
-func (ds *defaultSessionManager)Scan() {
+func (ds *defaultSessionManager) Scan() {
 	for key, value := range ds.sessionMap {
 		if value.IsExpire() {
 			ds.DeleteSession(key)
@@ -86,13 +86,13 @@ func (ds *defaultSessionManager) Sync(resp http.ResponseWriter, req *http.Reques
 		tmpSession = ds.GetSession(ck.Value)
 		tmpSession.ExpireTime = time.Now().Add(ds.lifeTime)
 	}
-	cookie := &http.Cookie{Name:ds.cookieName, Value:tmpSession.Name, Path:"/", Expires:tmpSession.ExpireTime}
+	cookie := &http.Cookie{Name: ds.cookieName, Value: tmpSession.Name, Path: "/", Expires: tmpSession.ExpireTime}
 	http.SetCookie(resp, cookie)
 	return tmpSession
 }
 
 func NewDefaultSessionManager(config *ServerConfig) SessionManager {
-	manager := &defaultSessionManager{sessionMap:map[string]*session{}, cookieName:"hlsSession", scanTime:1 * time.Minute, lifeTime:15 * time.Minute}
+	manager := &defaultSessionManager{sessionMap: map[string]*session{}, cookieName: "hlsSession", scanTime: 1 * time.Minute, lifeTime: 15 * time.Minute}
 	go manager.Scan()
 	return manager
 }

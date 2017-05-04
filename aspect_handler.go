@@ -6,8 +6,8 @@ import (
 )
 
 /**
-   A handler for aop
- */
+  A handler for aop
+*/
 type AspectHandler interface {
 	ShouldAppendOn(req *http.Request) bool
 	Server(ServletContext, http.ResponseWriter, *http.Request) bool
@@ -23,7 +23,7 @@ type DefaultAspectHandler struct {
 	PositionFlg bool
 }
 
-func (defaultAspectHandler *DefaultAspectHandler)ShouldAppendOn(req *http.Request) bool {
+func (defaultAspectHandler *DefaultAspectHandler) ShouldAppendOn(req *http.Request) bool {
 	if defaultAspectHandler.CustomCheck != nil {
 		return defaultAspectHandler.CustomCheck(req)
 	}
@@ -45,9 +45,9 @@ func (defaultAspectHandler *DefaultAspectHandler)ShouldAppendOn(req *http.Reques
 	return false
 }
 
-func (defaultAspectHandler *DefaultAspectHandler)BeforeOrAfter() bool {
+func (defaultAspectHandler *DefaultAspectHandler) BeforeOrAfter() bool {
 	return defaultAspectHandler.PositionFlg
 }
-func (defaultAspectHandler *DefaultAspectHandler)Server(serverContext ServletContext, resp http.ResponseWriter, req *http.Request) bool {
+func (defaultAspectHandler *DefaultAspectHandler) Server(serverContext ServletContext, resp http.ResponseWriter, req *http.Request) bool {
 	return defaultAspectHandler.Execute(serverContext, resp, req)
 }
