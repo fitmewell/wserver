@@ -1,4 +1,4 @@
-package wserver
+package bdb
 
 import (
 	"database/sql"

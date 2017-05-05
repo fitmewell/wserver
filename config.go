@@ -63,11 +63,15 @@ type PropertiesFile struct {
 }
 type ServerConfig struct {
 	Port             string
-	Token            string
 	UseSSL           bool
 	SSLConfig        SSLConfig
 	Databases        []Database
 	StaticResources  []StaticResource
 	Templates        []Template
 	PropertiesConfig PropertiesConfig
+	Session          Session
+}
+
+type Session struct {
+	CookieName string
 }

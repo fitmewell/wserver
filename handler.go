@@ -10,13 +10,13 @@ import (
 	"strings"
 )
 
-type handler struct {
+type wHandler struct {
 	wServer     *WServer
 	handlerTree handlerTree
 }
 
-func NewDefaultHandler(wServer *WServer) (h *handler) {
-	h = &handler{wServer: wServer, handlerTree: NewDefaultHandlerTree()}
+func NewDefaultHandler(wServer *WServer) (h *wHandler) {
+	h = &wHandler{wServer: wServer, handlerTree: NewDefaultHandlerTree()}
 	for _, resource := range wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
@@ -34,7 +34,7 @@ func NewDefaultHandler(wServer *WServer) (h *handler) {
 	return
 }
 
-func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	tmp_session := h.wServer.sessionManager.Sync(resp, req)
 	servletContext := &DefaultServletContext{ServerContext: h.wServer.context, Session: tmp_session, data: map[string]interface{}{}}
 	if !h.handlerTree.AspectBefore(servletContext, resp, req) {
@@ -69,12 +69,12 @@ func (h *handler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *handler) addHandler(method string, path string, e interface{}) *handler {
+func (h *wHandler) addHandler(method string, path string, e interface{}) *wHandler {
 	h.handlerTree.AddHandler(method, path, e)
 	return h
 }
 
-func (h *handler) addAspect(a AspectHandler) *handler {
+func (h *wHandler) addAspect(a AspectHandler) *wHandler {
 	h.handlerTree.AddAspect(a)
 	return h
 }
@@ -86,7 +86,10 @@ var (
 	errorKind   reflect.Type = reflect.TypeOf((error)(nil))
 )
 
-func (h *handler) handle(context ServletContext, resp http.ResponseWriter, req *http.Request, m interface{}) (err error) {
+/*
+
+ */
+func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req *http.Request, m interface{}) (err error) {
 	t := reflect.TypeOf(m)
 	v := reflect.ValueOf(m)
 	n := t.NumIn()

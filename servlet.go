@@ -1,12 +1,16 @@
 package wserver
 
-import "io"
+import (
+	"github.com/fitmewell/wserver/bdb"
+	"github.com/fitmewell/wserver/session"
+	"io"
+)
 
 type ServletContext interface {
 	ServerContext
 
 	//Get servlet session
-	GetSession() *session
+	GetSession() session.Session
 
 	//get data stored in servlet
 	GetData() map[string]interface{}
@@ -20,15 +24,15 @@ type ServletContext interface {
 */
 type DefaultServletContext struct {
 	ServerContext ServerContext
-	Session       *session
+	Session       session.Session
 	data          map[string]interface{}
 }
 
-func (defaultContext *DefaultServletContext) GetDb() BufferedDB {
+func (defaultContext *DefaultServletContext) GetDb() bdb.BufferedDB {
 	return defaultContext.ServerContext.GetDb()
 }
 
-func (defaultContext *DefaultServletContext) GetSelectDb(dbName string) BufferedDB {
+func (defaultContext *DefaultServletContext) GetSelectDb(dbName string) bdb.BufferedDB {
 	return defaultContext.ServerContext.GetSelectDb(dbName)
 }
 
@@ -52,6 +56,6 @@ func (defaultContext *DefaultServletContext) ExecuteTemplate(wr io.Writer, name 
 	return defaultContext.ServerContext.ExecuteTemplate(wr, name, data)
 }
 
-func (defaultContext *DefaultServletContext) GetSession() *session {
+func (defaultContext *DefaultServletContext) GetSession() session.Session {
 	return defaultContext.Session
 }

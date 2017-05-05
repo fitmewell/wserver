@@ -2,6 +2,7 @@ package wserver
 
 import (
 	"database/sql"
+	"github.com/fitmewell/wserver/bdb"
 	"html/template"
 	"io"
 	"log"
@@ -9,10 +10,10 @@ import (
 
 type ServerContext interface {
 	//return default db
-	GetDb() BufferedDB
+	GetDb() bdb.BufferedDB
 
 	//return select db
-	GetSelectDb(string) BufferedDB
+	GetSelectDb(string) bdb.BufferedDB
 
 	//write to write by template name
 	ExecuteTemplate(io.Writer, string, interface{}) error
@@ -25,17 +26,17 @@ type ServerContext interface {
 }
 
 type DefaultServerContext struct {
-	defaultDb  BufferedDB
-	dbs        map[string]BufferedDB
+	defaultDb  bdb.BufferedDB
+	dbs        map[string]bdb.BufferedDB
 	template   *template.Template
 	properties map[string]string
 }
 
-func (defaultContext *DefaultServerContext) GetDb() BufferedDB {
+func (defaultContext *DefaultServerContext) GetDb() bdb.BufferedDB {
 	return defaultContext.defaultDb
 }
 
-func (defaultContext *DefaultServerContext) GetSelectDb(dbName string) BufferedDB {
+func (defaultContext *DefaultServerContext) GetSelectDb(dbName string) bdb.BufferedDB {
 	return defaultContext.dbs[dbName]
 }
 
@@ -58,15 +59,15 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 		dir := templateConfig.Dir
 		temp.ParseGlob(dir + "/*")
 	}
-	dbs := map[string]BufferedDB{}
-	var defaultDb BufferedDB = nil
+	dbs := map[string]bdb.BufferedDB{}
+	var defaultDb bdb.BufferedDB = nil
 	for _, dbConfig := range config.Databases {
 		db, err := sql.Open(dbConfig.DriverName, dbConfig.GenerateUrl())
 		if err != nil {
 			log.Fatal("db {} connection failed ", dbConfig.DbName, err)
 		}
 		db.SetMaxOpenConns(dbConfig.MaxConnections)
-		bufferedDb := NewBufferedDb(db)
+		bufferedDb := bdb.NewBufferedDb(db)
 		dbs[dbConfig.DbName] = bufferedDb
 		if dbConfig.IsDefault {
 			defaultDb = bufferedDb
