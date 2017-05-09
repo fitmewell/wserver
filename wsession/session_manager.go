@@ -1,4 +1,4 @@
-package session
+package wsession
 
 import (
 	"crypto/rand"

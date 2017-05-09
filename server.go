@@ -2,7 +2,7 @@ package wserver
 
 import (
 	"errors"
-	"github.com/fitmewell/wserver/session"
+	"github.com/fitmewell/wserver/wsession"
 	"log"
 	"net/http"
 	"os"
@@ -11,32 +11,32 @@ import (
 	"time"
 )
 
-func New(filePath string) (wServer *WServer, err error) {
+func New(filePath string) (wServer *Server, err error) {
 	debug("loading config file: " + filePath)
 	config, err := NewConfig(filePath)
 	if err != nil {
 		return nil, err
 	}
-	wServer = &WServer{
+	wServer = &Server{
 		config:         config,
-		sessionManager: session.NewDefaultSessionManager(config.Session.CookieName),
+		sessionManager: wsession.NewDefaultSessionManager(config.Session.CookieName),
 		aftermaths:     map[string]func(){},
 	}
 	wServer.handler = NewDefaultHandler(wServer)
 	return
 }
 
-type WServer struct {
+type Server struct {
 	config         *ServerConfig
 	handler        *wHandler
 	context        ServerContext
 	lock           sync.Mutex
 	started        bool
-	sessionManager session.SessionManager
+	sessionManager wsession.SessionManager
 	aftermaths     map[string]func()
 }
 
-func (ws *WServer) Start() {
+func (ws *Server) Start() {
 	ws.lock.Lock()
 	defer func() {
 		ws.started = false
@@ -54,7 +54,7 @@ func (ws *WServer) Start() {
 	ws.listen()
 }
 
-func (ws *WServer) listen() {
+func (ws *Server) listen() {
 
 	var err error
 	config := ws.config
@@ -82,18 +82,18 @@ func (ws *WServer) listen() {
 
 //'method' support method , use * to support all method
 //'path' path
-//'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct wserver context
-func (ws *WServer) AddHandler(method string, path string, e interface{}) *WServer {
+//'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct server context
+func (ws *Server) AddHandler(method string, path string, e interface{}) *Server {
 	ws.handler.addHandler(method, path, e)
 	return ws
 }
 
-func (ws *WServer) AddAspectHandler(handler AspectHandler) *WServer {
+func (ws *Server) AddAspectHandler(handler AspectHandler) *Server {
 	ws.handler.addAspect(handler)
 	return ws
 }
 
-func (ws *WServer) aftermath() {
+func (ws *Server) aftermath() {
 	s := make(chan os.Signal, 2)
 	signal.Notify(s)
 	go func() {
@@ -132,7 +132,7 @@ func (ws *WServer) aftermath() {
 	}()
 }
 
-func (ws *WServer) AddAftermath(name string, method func()) error {
+func (ws *Server) AddAftermath(name string, method func()) error {
 	if _, ok := ws.aftermaths[name]; ok {
 		return errors.New("duplicate aftermatch found")
 	}

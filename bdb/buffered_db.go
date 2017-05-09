@@ -62,50 +62,50 @@ func NewBufferedDb(db *sql.DB) BufferedDB {
 	return &defaultBdb{db, map[string]*sql.Stmt{}}
 }
 
-func (bdb *defaultBdb) SelectInInterface(sqlSequence string, v interface{}, parameters ...interface{}) error {
-	sqlStmt, err := bdb.getPreparedStatement(sqlSequence)
+func (tdb *defaultBdb) SelectInInterface(sqlSequence string, v interface{}, parameters ...interface{}) error {
+	sqlStmt, err := tdb.getPreparedStatement(sqlSequence)
 	if err != nil {
 		return err
 	}
 	return selectInInterface(sqlStmt, v, parameters...)
 }
 
-func (bdb *defaultBdb) getPreparedStatement(sqlSentence string) (*sql.Stmt, error) {
-	if preparedStmt, ok := bdb.preparedStmtMap[sqlSentence]; ok {
+func (tdb *defaultBdb) getPreparedStatement(sqlSentence string) (*sql.Stmt, error) {
+	if preparedStmt, ok := tdb.preparedStmtMap[sqlSentence]; ok {
 		return preparedStmt, nil
 	} else {
-		sqlStmt, err := bdb.Prepare(sqlSentence)
+		sqlStmt, err := tdb.Prepare(sqlSentence)
 		if err != nil {
 			return nil, err
 		}
-		if bdb.preparedStmtMap == nil {
-			bdb.preparedStmtMap = make(map[string]*sql.Stmt)
+		if tdb.preparedStmtMap == nil {
+			tdb.preparedStmtMap = make(map[string]*sql.Stmt)
 		}
-		bdb.preparedStmtMap[sqlSentence] = sqlStmt
+		tdb.preparedStmtMap[sqlSentence] = sqlStmt
 		return sqlStmt, nil
 	}
 }
 
-func (bdb *defaultBdb) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
-	sqlStmt, err := bdb.getPreparedStatement(sqlState)
+func (tdb *defaultBdb) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
+	sqlStmt, err := tdb.getPreparedStatement(sqlState)
 	if err != nil {
 		return nil, err
 	}
 	return sqlStmt.Exec(parameters...)
 }
 
-func (bdb *defaultBdb) ExecuteDbSequence(sequence string, parameter interface{}) (sql.Result, error) {
+func (tdb *defaultBdb) ExecuteDbSequence(sequence string, parameter interface{}) (sql.Result, error) {
 	sequence, parameters := parseInput(sequence, parameter)
-	return bdb.ExecutePreparedSql(sequence, parameters...)
+	return tdb.ExecutePreparedSql(sequence, parameters...)
 }
 
-func (bdb *defaultBdb) SelectInInterfaceAuto(sequence string, out interface{}, in interface{}) error {
+func (tdb *defaultBdb) SelectInInterfaceAuto(sequence string, out interface{}, in interface{}) error {
 	sequence, parameters := parseInput(sequence, in)
-	return bdb.SelectInInterface(sequence, out, parameters...)
+	return tdb.SelectInInterface(sequence, out, parameters...)
 }
 
-func (bufferedDb *defaultBdb) BeginTransactional() (BufferedTransactional, error) {
-	t, e := bufferedDb.Begin()
+func (tdb *defaultBdb) BeginTransactional() (BufferedTransactional, error) {
+	t, e := tdb.Begin()
 	return &defaultBtx{t}, e
 }
 
@@ -302,11 +302,11 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 		} else {
 			n := valueOfBean.Len()
 			if n >= valueOfBean.Cap() {
-				cap := 2 * n
-				if cap < 4 {
-					cap = 4
+				c := 2 * n
+				if c < 4 {
+					c = 4
 				}
-				newSlice := reflect.MakeSlice(typeOfBean, n, cap)
+				newSlice := reflect.MakeSlice(typeOfBean, n, c)
 				reflect.Copy(newSlice, valueOfBean)
 				valueOfBean.Set(newSlice)
 			}

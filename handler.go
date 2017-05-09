@@ -11,11 +11,11 @@ import (
 )
 
 type wHandler struct {
-	wServer     *WServer
+	wServer     *Server
 	handlerTree handlerTree
 }
 
-func NewDefaultHandler(wServer *WServer) (h *wHandler) {
+func NewDefaultHandler(wServer *Server) (h *wHandler) {
 	h = &wHandler{wServer: wServer, handlerTree: NewDefaultHandlerTree()}
 	for _, resource := range wServer.config.StaticResources {
 		path := resource.Path
