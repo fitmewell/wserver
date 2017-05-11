@@ -99,6 +99,10 @@ func (ws *Server) aftermath() {
 	go func() {
 		switch <-s {
 		case os.Interrupt:
+			fallthrough
+		case os.Kill:
+			fallthrough
+		default:
 			debug("closing")
 			ws.started = false
 
