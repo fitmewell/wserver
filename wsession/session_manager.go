@@ -70,6 +70,9 @@ func (ds *defaultSessionManager) Sync(resp http.ResponseWriter, req *http.Reques
 }
 
 func NewDefaultSessionManager(name string) SessionManager {
+	if name == "" {
+		name = "wServerSession"
+	}
 	manager := &defaultSessionManager{sessionMap: map[string]Session{}, cookieName: name, scanTime: 1 * time.Minute, lifeTime: 15 * time.Minute}
 	go manager.Scan()
 	return manager
