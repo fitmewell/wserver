@@ -97,12 +97,12 @@ func (ws *Server) aftermath() {
 	s := make(chan os.Signal, 2)
 	signal.Notify(s)
 	go func() {
-		switch <-s {
+		cs := <-s
+		debug("caught system signal:" + cs.String())
+		switch cs {
 		case os.Interrupt:
 			fallthrough
 		case os.Kill:
-			fallthrough
-		default:
 			debug("closing")
 			ws.started = false
 
