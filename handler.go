@@ -20,10 +20,10 @@ func NewDefaultHandler(wServer *Server) (h *wHandler) {
 	for _, resource := range wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
-			path = path[0: len(path)-2]
+			path = path[0 : len(path)-2]
 		}
 		if strings.HasSuffix(path, "*") {
-			path = path[0: len(path)-1]
+			path = path[0 : len(path)-1]
 		}
 		t := http.StripPrefix(path, http.FileServer(http.Dir(resource.FileLocate)))
 		h.addHandler("GET", resource.Path, func(context ServletContext, resp http.ResponseWriter, req *http.Request) error {
