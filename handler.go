@@ -20,10 +20,10 @@ func NewDefaultHandler(wServer *Server) (h *wHandler) {
 	for _, resource := range wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
-			path = path[0 : len(path)-2]
+			path = path[0: len(path)-2]
 		}
 		if strings.HasSuffix(path, "*") {
-			path = path[0 : len(path)-1]
+			path = path[0: len(path)-1]
 		}
 		t := http.StripPrefix(path, http.FileServer(http.Dir(resource.FileLocate)))
 		h.addHandler("GET", resource.Path, func(context ServletContext, resp http.ResponseWriter, req *http.Request) error {
@@ -56,10 +56,7 @@ func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	} else {
 		accept := req.Header.Get("Accept")
 		if strings.Contains(accept, "text/html") {
-			err := h.wServer.context.ExecuteTemplate(resp, "index.html", nil)
-			if err != nil {
-				log.Print(err)
-			}
+			http.Error(resp, "Page not found", STATUS_NOT_FOUND.statusCode)
 		} else {
 			http.Error(resp, STATUS_NOT_FOUND.statusMessage, STATUS_NOT_FOUND.statusCode)
 		}
@@ -150,13 +147,14 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 		case reflect.String:
 			path := out.Interface().(string)
 			if e := context.ExecuteTemplate(resp, path, context.GetData()); e != nil {
+				debug(e.Error())
 				http.Redirect(resp, req, path, http.StatusFound)
 			}
 		case reflect.Interface:
 			if out.Type() == errorKind {
 				err = out.Interface().(error)
 			}
-		//todo
+			//todo
 		case reflect.Struct:
 			resp.Header().Set("Content-Type", "application/json")
 			tb, err := json.Marshal(out.Interface())
