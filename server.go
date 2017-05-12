@@ -26,6 +26,17 @@ func New(filePath string) (wServer *Server, err error) {
 	return
 }
 
+func NewPortServer(port string) (wServer *Server) {
+	config := &ServerConfig{Port: port}
+	wServer = &Server{
+		config:         config,
+		sessionManager: wsession.NewDefaultSessionManager(config.Session.CookieName),
+		aftermaths:     map[string]func(){},
+	}
+	wServer.handler = NewDefaultHandler(wServer)
+	return
+}
+
 type Server struct {
 	config         *ServerConfig
 	handler        *wHandler
