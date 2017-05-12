@@ -16,8 +16,12 @@ type wHandler struct {
 }
 
 func NewDefaultHandler(wServer *Server) (h *wHandler) {
-	h = &wHandler{wServer: wServer, handlerTree: NewDefaultHandlerTree()}
-	for _, resource := range wServer.config.StaticResources {
+	h = &wHandler{wServer: wServer, handlerTree: newDefaultHandlerTree()}
+	return
+}
+
+func (h *wHandler) init() {
+	for _, resource := range h.wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
 			path = path[0 : len(path)-2]
@@ -31,7 +35,6 @@ func NewDefaultHandler(wServer *Server) (h *wHandler) {
 			return nil
 		})
 	}
-	return
 }
 
 func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {

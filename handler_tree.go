@@ -12,7 +12,7 @@ type handlerTree interface {
 	AspectAfter(ServletContext, http.ResponseWriter, *http.Request) bool
 }
 
-func NewDefaultHandlerTree() handlerTree {
+func newDefaultHandlerTree() handlerTree {
 	defaultTree := &defaultHandlerTree{}
 	defaultTree.rootNode = &defaultHandlerTreeNode{tree: defaultTree, Path: "", PathKey: "", handlers: map[string]interface{}{}, childNodes: map[string]handlerTreeNode{}}
 	return defaultTree

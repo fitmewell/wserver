@@ -48,6 +48,9 @@ type Server struct {
 }
 
 func (ws *Server) Start() {
+
+	ws.handler.init()
+
 	ws.lock.Lock()
 	defer func() {
 		ws.started = false
@@ -96,6 +99,16 @@ func (ws *Server) listen() {
 //'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct server context
 func (ws *Server) AddHandler(method string, path string, e interface{}) *Server {
 	ws.handler.addHandler(method, path, e)
+	return ws
+}
+
+func (ws *Server) AddStaticSource(path, fileLocate string) *Server {
+	ws.config.StaticResources = append(ws.config.StaticResources, StaticResource{Path: path, FileLocate: fileLocate})
+	return ws
+}
+
+func (ws *Server) AddTemplate(name, dir string) *Server {
+	ws.config.Templates = append(ws.config.Templates, Template{Name: name, Dir: dir})
 	return ws
 }
 
