@@ -145,6 +145,9 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 	}
 	outs := v.Call(inputs)
 	for _, out := range outs {
+		for out.Kind() == reflect.Ptr {
+			out = out.Elem()
+		}
 		ot := out.Kind()
 		switch ot {
 		case reflect.String:
