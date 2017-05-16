@@ -121,39 +121,41 @@ func (ws *Server) aftermath() {
 	s := make(chan os.Signal, 2)
 	signal.Notify(s)
 	go func() {
-		cs := <-s
-		debug("caught system signal:" + cs.String())
-		switch cs {
-		case os.Interrupt:
-			fallthrough
-		case os.Kill:
-			debug("closing")
-			ws.started = false
+		for {
+			cs := <-s
+			debug("caught system signal:" + cs.String())
+			switch cs {
+			case os.Interrupt:
+				fallthrough
+			case os.Kill:
+				debug("closing")
+				ws.started = false
 
-			go func() {
-				time.Sleep(5 * time.Second)
-				debug("end")
-				ws.lock.Unlock()
-				os.Exit(1)
-			}()
-			c := make(chan string, len(ws.aftermaths))
-			for k, v := range ws.aftermaths {
-				go func(name string, method func()) {
-					debug("[aftermath][" + name + "]start")
-					method()
-					c <- name
-				}(k, v)
-			}
-
-			amount := 0
-			for {
-				k := <-c
-				debug("[aftermath][" + k + "]end")
-				amount++
-				if amount == len(ws.aftermaths) {
+				go func() {
+					time.Sleep(5 * time.Second)
 					debug("end")
 					ws.lock.Unlock()
 					os.Exit(1)
+				}()
+				c := make(chan string, len(ws.aftermaths))
+				for k, v := range ws.aftermaths {
+					go func(name string, method func()) {
+						debug("[aftermath][" + name + "]start")
+						method()
+						c <- name
+					}(k, v)
+				}
+
+				amount := 0
+				for {
+					k := <-c
+					debug("[aftermath][" + k + "]end")
+					amount++
+					if amount == len(ws.aftermaths) {
+						debug("end")
+						ws.lock.Unlock()
+						os.Exit(1)
+					}
 				}
 			}
 		}
