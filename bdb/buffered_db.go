@@ -318,10 +318,10 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 }
 
 func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCache []int, err error) {
-	columnCache = make([]int, len(rowColumns))
-	if _, ok := matchedPool[actualType]; ok {
-		columnCache = matchedPool[actualType]
+	if columnCache, ok := matchedPool[actualType]; ok && len(columnCache) == len(rowColumns) {
+		return columnCache, nil
 	} else {
+		columnCache = make([]int, len(rowColumns))
 		for i, columnName := range rowColumns {
 			for j := 0; j < actualType.NumField(); j++ {
 				filedI := actualType.Field(j)
