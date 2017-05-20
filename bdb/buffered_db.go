@@ -47,8 +47,6 @@ const default_time_pattern = "2006-01-02 15:04:05"
 
 var timeType = reflect.TypeOf(time.Time{})
 
-var matchedPool map[reflect.Type][]int
-
 type defaultBdb struct {
 	*sql.DB
 	preparedStmtMap map[string]*sql.Stmt
@@ -318,9 +316,6 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 }
 
 func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCache []int, err error) {
-	if columnCache, ok := matchedPool[actualType]; ok && len(columnCache) == len(rowColumns) {
-		return columnCache, nil
-	} else {
 		columnCache = make([]int, len(rowColumns))
 		for i, columnName := range rowColumns {
 			for j := 0; j < actualType.NumField(); j++ {
@@ -349,10 +344,5 @@ func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCach
 				}
 			}
 		}
-		if matchedPool == nil {
-			matchedPool = make(map[reflect.Type][]int)
-		}
-		matchedPool[actualType] = columnCache
-	}
 	return columnCache, err
 }
