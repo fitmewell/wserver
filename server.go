@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"sync"
 	"time"
+	"syscall"
 )
 
 func New(filePath string) (wServer *Server, err error) {
@@ -126,6 +127,8 @@ func (ws *Server) aftermath() {
 			debug("caught system signal:" + cs.String())
 			switch cs {
 			case os.Interrupt:
+				fallthrough
+			case syscall.SIGTERM:
 				fallthrough
 			case os.Kill:
 				debug("closing")
