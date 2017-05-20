@@ -325,8 +325,9 @@ func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCach
 		for i, columnName := range rowColumns {
 			for j := 0; j < actualType.NumField(); j++ {
 				filedI := actualType.Field(j)
-				if filedI.Tag.Get("column") != "" {
-					intValue, err := strconv.ParseInt(string(filedI.Tag.Get("index")), 10, 0)
+				columnIndex := filedI.Tag.Get("column")
+				if columnIndex != "" {
+					intValue, err := strconv.ParseInt(string(columnIndex), 10, 0)
 					columnCache[int(intValue)] = j
 					if err != nil {
 						return columnCache, err
