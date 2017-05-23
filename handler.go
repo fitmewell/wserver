@@ -24,10 +24,10 @@ func (h *wHandler) init() {
 	for _, resource := range h.wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
-			path = path[0: len(path)-2]
+			path = path[0 : len(path)-2]
 		}
 		if strings.HasSuffix(path, "*") {
-			path = path[0: len(path)-1]
+			path = path[0 : len(path)-1]
 		}
 		t := http.StripPrefix(path, http.FileServer(http.Dir(resource.FileLocate)))
 		h.addHandler("GET", resource.Path, func(context ServletContext, resp http.ResponseWriter, req *http.Request) error {
@@ -132,11 +132,15 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 						case "TEXT/JSON":
 							fallthrough
 						case "APPLICATION/JSON":
-							json.Unmarshal(b, t.Interface())
+							if err := json.Unmarshal(b, t.Interface()); err != nil {
+								return err
+							}
 						case "TEXT/XML":
 							fallthrough
 						case "APPLICATION/XML":
-							xml.Unmarshal(b, t.Interface())
+							if err := xml.Unmarshal(b, t.Interface()); err != nil {
+								return err
+							}
 						}
 					}
 				}
