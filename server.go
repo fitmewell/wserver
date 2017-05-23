@@ -8,8 +8,8 @@ import (
 	"os"
 	"os/signal"
 	"sync"
-	"time"
 	"syscall"
+	"time"
 )
 
 func New(filePath string) (wServer *Server, err error) {

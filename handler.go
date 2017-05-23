@@ -50,7 +50,12 @@ func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		err = h.handle(servletContext, resp, req, ha)
 		if err != nil {
 			if e, ok := err.(*StatusError); ok {
-				http.Error(resp, e.statusMessage, e.statusCode)
+				switch e.statusCode {
+				case STATUS_UNAUTHORIZED.statusCode:
+					http.Redirect(resp, req, "/", 301)
+				default:
+					http.Error(resp, e.statusMessage, e.statusCode)
+				}
 			} else {
 				log.Print(err)
 			}
@@ -80,10 +85,10 @@ func (h *wHandler) addAspect(a AspectHandler) *wHandler {
 }
 
 var (
-	respKind    reflect.Type = reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()
-	reqKind     reflect.Type = reflect.TypeOf((*http.Request)(nil)).Elem()
-	contextKind reflect.Type = reflect.TypeOf((*ServletContext)(nil)).Elem()
-	errorKind   reflect.Type = reflect.TypeOf((error)(nil))
+	respType    reflect.Type = reflect.TypeOf((*http.ResponseWriter)(nil)).Elem()
+	reqType     reflect.Type = reflect.TypeOf((*http.Request)(nil)).Elem()
+	contextType reflect.Type = reflect.TypeOf((*ServletContext)(nil)).Elem()
+	errorType   reflect.Type = reflect.TypeOf((*error)(nil)).Elem()
 )
 
 /*
@@ -102,14 +107,14 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 		switch at.Kind() {
 		case reflect.Interface:
 			switch at {
-			case respKind:
+			case respType:
 				inputs[i] = reflect.ValueOf(resp)
-			case contextKind:
+			case contextType:
 				inputs[i] = reflect.ValueOf(context)
 			}
 		case reflect.Struct:
 			switch at {
-			case reqKind:
+			case reqType:
 				inputs[i] = reflect.ValueOf(req)
 			default:
 				//todo add custom struct parse
@@ -149,6 +154,9 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 			out = out.Elem()
 		}
 		ot := out.Kind()
+		if out.IsNil() {
+			continue
+		}
 		switch ot {
 		case reflect.String:
 			path := out.Interface().(string)
@@ -157,7 +165,7 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 				http.Redirect(resp, req, path, http.StatusFound)
 			}
 		case reflect.Interface:
-			if out.Type() == errorKind {
+			if out.Type().Implements(errorType) {
 				err = out.Interface().(error)
 			}
 			//todo
