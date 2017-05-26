@@ -18,24 +18,22 @@ func New(filePath string) (wServer *Server, err error) {
 	if err != nil {
 		return nil, err
 	}
-	wServer = &Server{
-		config:         config,
-		sessionManager: wsession.NewDefaultSessionManager(config.Session.CookieName),
-		aftermaths:     map[string]func(){},
-	}
-	wServer.handler = NewDefaultHandler(wServer)
-	return
+	return NewServer(config), nil
 }
 
 func NewPortServer(port string) (wServer *Server) {
 	config := &ServerConfig{Port: port}
-	wServer = &Server{
+	return NewServer(config)
+}
+func NewServer(config *ServerConfig) *Server {
+	server := &Server{
 		config:         config,
 		sessionManager: wsession.NewDefaultSessionManager(config.Session.CookieName),
 		aftermaths:     map[string]func(){},
 	}
-	wServer.handler = NewDefaultHandler(wServer)
-	return
+	server.handler = newDefaultHandler(server)
+	server.context = NewContextFrom(server.config)
+	return server
 }
 
 type Server struct {
@@ -63,7 +61,7 @@ func (ws *Server) Start() {
 		Fatal("Server already started")
 	}
 	ws.started = true
-	ws.context = NewContextFrom(ws.config)
+	ws.context.Init()
 	Debug("started")
 	ws.aftermath()
 	ws.listen()
@@ -100,6 +98,7 @@ func (ws *Server) listen() {
 //'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct server context
 func (ws *Server) AddHandler(method string, path string, e interface{}) *Server {
 	ws.handler.addHandler(method, path, e)
+	DebugF("Listening:[%s]\t[%s]\t{%v}",path,method,e)
 	return ws
 }
 
@@ -171,4 +170,8 @@ func (ws *Server) AddAftermath(name string, method func()) error {
 	}
 	ws.aftermaths[name] = method
 	return nil
+}
+
+func (ws *Server) GetProperties(i string) string {
+	return ws.context.GetProperty(i)
 }

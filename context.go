@@ -26,6 +26,9 @@ type ServerContext interface {
 
 	//judge if properties exists
 	ContainsProperty(string) bool
+
+	//init
+	Init()
 }
 
 type DefaultServerContext struct {
@@ -33,6 +36,7 @@ type DefaultServerContext struct {
 	dbs        map[string]bdb.BufferedDB
 	template   *template.Template
 	properties map[string]string
+	config *ServerConfig
 }
 
 func (defaultContext *DefaultServerContext) GetDb() bdb.BufferedDB {
@@ -56,15 +60,16 @@ func (defaultContext *DefaultServerContext) ExecuteTemplate(wr io.Writer, name s
 	return defaultContext.template.ExecuteTemplate(wr, name, data)
 }
 
-func NewContextFrom(config *ServerConfig) *DefaultServerContext {
+
+func (defaultContext *DefaultServerContext) Init() {
 	temp := template.New("default")
-	for _, templateConfig := range config.Templates {
+	for _, templateConfig := range defaultContext.config.Templates {
 		dir := templateConfig.Dir
 		temp.ParseGlob(dir + "/*")
 	}
 	dbs := map[string]bdb.BufferedDB{}
 	var defaultDb bdb.BufferedDB = nil
-	for _, dbConfig := range config.Databases {
+	for _, dbConfig := range defaultContext.config.Databases {
 		db, err := sql.Open(dbConfig.DriverName, dbConfig.GenerateUrl())
 		if err != nil {
 			Fatal("db {} connection failed ", dbConfig.DbName, err)
@@ -79,6 +84,12 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 			defaultDb = bufferedDb
 		}
 	}
+	defaultContext.defaultDb = defaultDb
+	defaultContext.dbs = dbs
+	defaultContext.template = temp
+}
+
+func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 
 	properties := map[string]string{}
 	for key, value := range config.PropertiesConfig.Properties {
@@ -112,8 +123,10 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 		}
 	}
 
-	return &DefaultServerContext{defaultDb: defaultDb, dbs: dbs, template: temp, properties: properties}
+	return &DefaultServerContext{properties: properties,config:config}
 }
+
+
 func parsePropertiesFile(locate string, properties map[string]string) map[string]string {
 	Debug("loading file:" + locate)
 	content, err := ioutil.ReadFile(locate)

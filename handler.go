@@ -15,7 +15,7 @@ type wHandler struct {
 	handlerTree handlerTree
 }
 
-func NewDefaultHandler(wServer *Server) (h *wHandler) {
+func newDefaultHandler(wServer *Server) (h *wHandler) {
 	h = &wHandler{wServer: wServer, handlerTree: newDefaultHandlerTree()}
 	return
 }
