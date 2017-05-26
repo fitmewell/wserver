@@ -3,8 +3,8 @@ package wserver
 import (
 	"encoding/json"
 	"encoding/xml"
+	. "github.com/fitmewell/wserver/log"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"reflect"
 	"strings"
@@ -44,7 +44,7 @@ func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 	var err error
-	debug("METHOD:" + req.Method + "\tPATH:" + req.RequestURI)
+	Debug("METHOD:" + req.Method + "\tPATH:" + req.RequestURI)
 	if ha := h.handlerTree.GetHandler(req); ha != nil {
 		//err = ha(servletContext, resp, req)
 		err = h.handle(servletContext, resp, req, ha)
@@ -57,7 +57,7 @@ func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 					http.Error(resp, e.statusMessage, e.statusCode)
 				}
 			} else {
-				log.Print(err)
+				Debug(err)
 			}
 			//wServer.handlerTree.HandlerError TODO  add common error handler here
 		}
@@ -162,7 +162,7 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 		case reflect.String:
 			path := out.Interface().(string)
 			if e := context.ExecuteTemplate(resp, path, context.GetData()); e != nil {
-				debug(e.Error())
+				Debug(e.Error())
 				http.Redirect(resp, req, path, http.StatusFound)
 			}
 		case reflect.Interface:
@@ -177,7 +177,7 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 			resp.Header().Set("Content-Type", "application/json")
 			tb, err := json.Marshal(out.Interface())
 			if err != nil {
-				log.Print(err)
+				Debug(err)
 				resp.Write([]byte(err.Error()))
 				break
 			}
@@ -189,7 +189,7 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 			default:
 				tb, err := json.Marshal(out.Interface())
 				if err != nil {
-					log.Print(err)
+					Debug(err)
 					resp.Write([]byte(err.Error()))
 					break
 				}

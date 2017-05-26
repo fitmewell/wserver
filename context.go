@@ -3,9 +3,12 @@ package wserver
 import (
 	"database/sql"
 	"github.com/fitmewell/wserver/bdb"
+	. "github.com/fitmewell/wserver/log"
 	"html/template"
 	"io"
-	"log"
+	"io/ioutil"
+	"os"
+	"strings"
 )
 
 type ServerContext interface {
@@ -64,7 +67,7 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 	for _, dbConfig := range config.Databases {
 		db, err := sql.Open(dbConfig.DriverName, dbConfig.GenerateUrl())
 		if err != nil {
-			log.Fatal("db {} connection failed ", dbConfig.DbName, err)
+			Fatal("db {} connection failed ", dbConfig.DbName, err)
 		}
 		db.SetMaxOpenConns(dbConfig.MaxConnections)
 		bufferedDb := bdb.NewBufferedDb(db)
@@ -80,7 +83,60 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 	properties := map[string]string{}
 	for key, value := range config.PropertiesConfig.Properties {
 		properties[key] = value
+		Debug("SystemProperties:" + key + "=" + value)
+	}
+	for _, pf := range config.PropertiesConfig.PropertiesFiles {
+		locate := pf.Locate
+		tmp, err := os.Open(locate)
+		if err != nil {
+			Fatal(err)
+		}
+		stat, err := tmp.Stat()
+		if err != nil {
+			Fatal(err)
+		}
+		if stat.IsDir() {
+			files, err := ioutil.ReadDir(pf.Locate)
+			if err != nil {
+				Fatal(err)
+			}
+
+			for _, file := range files {
+				name := file.Name()
+				if strings.HasSuffix(strings.ToUpper(name), ".PROPERTIES") {
+					parsePropertiesFile(locate+name, properties)
+				}
+			}
+		} else {
+			properties = parsePropertiesFile(locate, properties)
+		}
 	}
 
 	return &DefaultServerContext{defaultDb: defaultDb, dbs: dbs, template: temp, properties: properties}
+}
+func parsePropertiesFile(locate string, properties map[string]string) map[string]string {
+	Debug("loading file:" + locate)
+	content, err := ioutil.ReadFile(locate)
+	if err != nil {
+		Fatal(err)
+	}
+	lines := strings.Split(string(content), "\n")
+	for i, line := range lines {
+		if len(strings.Trim(line, "")) == 0 {
+			continue
+		}
+		kv := strings.Split(line, "=")
+		if len(kv) != 2 {
+			DebugF("properties file parse failed :[%s]:%d:%s\n", locate, i, line)
+		} else {
+			value := kv[1]
+			key := kv[0]
+			if old, ok := properties[key]; ok {
+				DebugF("duplicate properties found [%s]{'%s'->'%s'} :[%s]:%d:%s\n", key, old, value, locate, i, line)
+			}
+			Debug("SystemProperties:" + key + "=" + value)
+			properties[key] = value
+		}
+	}
+	return properties
 }

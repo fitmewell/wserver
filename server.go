@@ -2,8 +2,8 @@ package wserver
 
 import (
 	"errors"
+	. "github.com/fitmewell/wserver/log"
 	"github.com/fitmewell/wserver/wsession"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -13,7 +13,7 @@ import (
 )
 
 func New(filePath string) (wServer *Server, err error) {
-	debug("loading config file: " + filePath)
+	Debug("loading config file: " + filePath)
 	config, err := NewConfig(filePath)
 	if err != nil {
 		return nil, err
@@ -55,16 +55,16 @@ func (ws *Server) Start() {
 	ws.lock.Lock()
 	defer func() {
 		ws.started = false
-		debug("end")
+		Debug("end")
 		ws.lock.Unlock()
 	}()
 
 	if ws.started {
-		log.Fatal("Server already started")
+		Fatal("Server already started")
 	}
 	ws.started = true
 	ws.context = NewContextFrom(ws.config)
-	debug("started")
+	Debug("started")
 	ws.aftermath()
 	ws.listen()
 }
@@ -81,7 +81,7 @@ func (ws *Server) listen() {
 			})
 			s := &http.Server{Addr: ":" + config.Port, Handler: httpServerMux}
 			if err := s.ListenAndServe(); err != nil {
-				log.Fatalf("ListenAndServe error: %v", err)
+				FatalF("ListenAndServe error: %v", err)
 			}
 		}()
 		s := &http.Server{Addr: ":" + config.SSLConfig.SSLPort, Handler: ws.handler}
@@ -91,7 +91,7 @@ func (ws *Server) listen() {
 		err = s.ListenAndServe()
 	}
 	if err != nil {
-		log.Print(err)
+		Debug(err)
 	}
 }
 
@@ -124,26 +124,26 @@ func (ws *Server) aftermath() {
 	go func() {
 		for {
 			cs := <-s
-			debug("caught system signal:" + cs.String())
+			Debug("caught system signal:" + cs.String())
 			switch cs {
 			case os.Interrupt:
 				fallthrough
 			case syscall.SIGTERM:
 				fallthrough
 			case os.Kill:
-				debug("closing")
+				Debug("closing")
 				ws.started = false
 
 				go func() {
 					time.Sleep(5 * time.Second)
-					debug("end")
+					Debug("end")
 					ws.lock.Unlock()
 					os.Exit(1)
 				}()
 				c := make(chan string, len(ws.aftermaths))
 				for k, v := range ws.aftermaths {
 					go func(name string, method func()) {
-						debug("[aftermath][" + name + "]start")
+						Debug("[aftermath][" + name + "]start")
 						method()
 						c <- name
 					}(k, v)
@@ -152,10 +152,10 @@ func (ws *Server) aftermath() {
 				amount := 0
 				for {
 					k := <-c
-					debug("[aftermath][" + k + "]end")
+					Debug("[aftermath][" + k + "]end")
 					amount++
 					if amount == len(ws.aftermaths) {
-						debug("end")
+						Debug("end")
 						ws.lock.Unlock()
 						os.Exit(1)
 					}

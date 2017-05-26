@@ -316,33 +316,33 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 }
 
 func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCache []int, err error) {
-		columnCache = make([]int, len(rowColumns))
-		for i, columnName := range rowColumns {
-			for j := 0; j < actualType.NumField(); j++ {
-				filedI := actualType.Field(j)
-				columnIndex := filedI.Tag.Get("column")
-				if columnIndex != "" {
-					intValue, err := strconv.ParseInt(string(columnIndex), 10, 0)
-					columnCache[int(intValue)] = j
-					if err != nil {
-						return columnCache, err
-					}
+	columnCache = make([]int, len(rowColumns))
+	for i, columnName := range rowColumns {
+		for j := 0; j < actualType.NumField(); j++ {
+			filedI := actualType.Field(j)
+			columnIndex := filedI.Tag.Get("column")
+			if columnIndex != "" {
+				intValue, err := strconv.ParseInt(string(columnIndex), 10, 0)
+				columnCache[int(intValue)] = j
+				if err != nil {
+					return columnCache, err
+				}
+			} else {
+				filedColumnName := filedI.Name
+				if filedI.Tag.Get("name") != "" {
+					filedColumnName = filedI.Tag.Get("name")
 				} else {
-					filedColumnName := filedI.Name
-					if filedI.Tag.Get("name") != "" {
-						filedColumnName = filedI.Tag.Get("name")
-					} else {
-						filedColumnName = strings.ToLower(strings.Replace(filedColumnName, "_", "", -1))
-					}
-					columnName = strings.ToLower(strings.Replace(columnName, "_", "", -1))
-					if filedColumnName == columnName {
-						columnCache[i] = j
-						break
-					} else {
-						columnCache[i] = -1
-					}
+					filedColumnName = strings.ToLower(strings.Replace(filedColumnName, "_", "", -1))
+				}
+				columnName = strings.ToLower(strings.Replace(columnName, "_", "", -1))
+				if filedColumnName == columnName {
+					columnCache[i] = j
+					break
+				} else {
+					columnCache[i] = -1
 				}
 			}
 		}
+	}
 	return columnCache, err
 }
