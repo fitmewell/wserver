@@ -83,7 +83,7 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 	properties := map[string]string{}
 	for key, value := range config.PropertiesConfig.Properties {
 		properties[key] = value
-		Debug("SystemProperties:" + key + "=" + value)
+		DebugF("SystemProperties:'%s'='%s'", key, value)
 	}
 	for _, pf := range config.PropertiesConfig.PropertiesFiles {
 		locate := pf.Locate
@@ -125,16 +125,16 @@ func parsePropertiesFile(locate string, properties map[string]string) map[string
 		if len(strings.Trim(line, "")) == 0 {
 			continue
 		}
-		kv := strings.Split(line, "=")
-		if len(kv) != 2 {
+		sepIndex := strings.Index(line, "=")
+		if sepIndex == -1 {
 			DebugF("properties file parse failed :[%s]:%d:%s\n", locate, i, line)
 		} else {
-			value := kv[1]
-			key := kv[0]
+			value := line[sepIndex+1:]
+			key := line[0:sepIndex]
 			if old, ok := properties[key]; ok {
 				DebugF("duplicate properties found [%s]{'%s'->'%s'} :[%s]:%d:%s\n", key, old, value, locate, i, line)
 			}
-			Debug("SystemProperties:" + key + "=" + value)
+			DebugF("SystemProperties:'%s'='%s'", key, value)
 			properties[key] = value
 		}
 	}
