@@ -36,7 +36,7 @@ type DefaultServerContext struct {
 	dbs        map[string]bdb.BufferedDB
 	template   *template.Template
 	properties map[string]string
-	config *ServerConfig
+	config     *ServerConfig
 }
 
 func (defaultContext *DefaultServerContext) GetDb() bdb.BufferedDB {
@@ -59,7 +59,6 @@ func (defaultContext *DefaultServerContext) ContainsProperty(key string) bool {
 func (defaultContext *DefaultServerContext) ExecuteTemplate(wr io.Writer, name string, data interface{}) error {
 	return defaultContext.template.ExecuteTemplate(wr, name, data)
 }
-
 
 func (defaultContext *DefaultServerContext) Init() {
 	temp := template.New("default")
@@ -123,9 +122,8 @@ func NewContextFrom(config *ServerConfig) *DefaultServerContext {
 		}
 	}
 
-	return &DefaultServerContext{properties: properties,config:config}
+	return &DefaultServerContext{properties: properties, config: config}
 }
-
 
 func parsePropertiesFile(locate string, properties map[string]string) map[string]string {
 	Debug("loading file:" + locate)

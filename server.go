@@ -48,8 +48,6 @@ type Server struct {
 
 func (ws *Server) Start() {
 
-	ws.handler.init()
-
 	ws.lock.Lock()
 	defer func() {
 		ws.started = false
@@ -62,6 +60,7 @@ func (ws *Server) Start() {
 	}
 	ws.started = true
 	ws.context.Init()
+	ws.handler.init()
 	Debug("started")
 	ws.aftermath()
 	ws.listen()
@@ -98,7 +97,7 @@ func (ws *Server) listen() {
 //'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct server context
 func (ws *Server) AddHandler(method string, path string, e interface{}) *Server {
 	ws.handler.addHandler(method, path, e)
-	DebugF("Listening:[%s]\t[%s]\t{%v}",path,method,e)
+	DebugF("Listening:[%s]\t[%s]\t{%v}", path, method, e)
 	return ws
 }
 

@@ -32,7 +32,7 @@ func (defaultContext *DefaultServletContext) GetDb() bdb.BufferedDB {
 	return defaultContext.ServerContext.GetDb()
 }
 
-func (defaultContext *DefaultServletContext) Init(){
+func (defaultContext *DefaultServletContext) Init() {
 
 }
 

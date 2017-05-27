@@ -30,6 +30,7 @@ func (h *wHandler) init() {
 			path = path[0 : len(path)-1]
 		}
 		t := http.StripPrefix(path, http.FileServer(http.Dir(resource.FileLocate)))
+		DebugF("Severing static files: %s %s", path, resource.FileLocate)
 		h.addHandler("GET", resource.Path, func(context ServletContext, resp http.ResponseWriter, req *http.Request) error {
 			t.ServeHTTP(resp, req)
 			return nil
