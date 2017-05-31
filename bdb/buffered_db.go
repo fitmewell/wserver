@@ -49,7 +49,6 @@ var timeType = reflect.TypeOf(time.Time{})
 
 type defaultBdb struct {
 	*sql.DB
-	preparedStmtMap map[string]*sql.Stmt
 }
 
 type defaultBtx struct {
@@ -57,7 +56,7 @@ type defaultBtx struct {
 }
 
 func NewBufferedDb(db *sql.DB) BufferedDB {
-	return &defaultBdb{db, map[string]*sql.Stmt{}}
+	return &defaultBdb{db}
 }
 
 func (tdb *defaultBdb) SelectInInterface(sqlSequence string, v interface{}, parameters ...interface{}) error {
@@ -69,23 +68,16 @@ func (tdb *defaultBdb) SelectInInterface(sqlSequence string, v interface{}, para
 }
 
 func (tdb *defaultBdb) getPreparedStatement(sqlSentence string) (*sql.Stmt, error) {
-	if preparedStmt, ok := tdb.preparedStmtMap[sqlSentence]; ok {
-		return preparedStmt, nil
-	} else {
-		sqlStmt, err := tdb.Prepare(sqlSentence)
-		if err != nil {
-			return nil, err
-		}
-		if tdb.preparedStmtMap == nil {
-			tdb.preparedStmtMap = make(map[string]*sql.Stmt)
-		}
-		tdb.preparedStmtMap[sqlSentence] = sqlStmt
-		return sqlStmt, nil
+	sqlStmt, err := tdb.Prepare(sqlSentence)
+	if err != nil {
+		return nil, err
 	}
+	return sqlStmt, nil
 }
 
 func (tdb *defaultBdb) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
 	sqlStmt, err := tdb.getPreparedStatement(sqlState)
+	defer sqlStmt.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -121,6 +113,7 @@ func (btx *defaultBtx) getPreparedStatement(sqlSentence string) (*sql.Stmt, erro
 
 func (btx *defaultBtx) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
 	sqlStmt, err := btx.getPreparedStatement(sqlState)
+	defer sqlStmt.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +163,7 @@ func getParameterValues(object interface{}, names string) interface{} {
 	splitIndex := strings.Index(names, ".")
 	if splitIndex > 0 {
 		name = names[0:splitIndex]
-		restName = names[splitIndex+1:]
+		restName = names[splitIndex + 1:]
 	}
 	name = strings.ToUpper(name[0:1]) + name[1:]
 
@@ -187,7 +180,7 @@ func getParameterValues(object interface{}, names string) interface{} {
 
 func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface{}) (err error) {
 	var rows *sql.Rows
-
+	defer sqlStmt.Close()
 	if parameters == nil || len(parameters) == 0 {
 		rows, err = sqlStmt.Query()
 	} else {
