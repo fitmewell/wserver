@@ -136,6 +136,9 @@ func parsePropertiesFile(locate string, properties map[string]string) map[string
 		if len(strings.Trim(line, "")) == 0 {
 			continue
 		}
+		if line[0:1] == "#" {
+			continue
+		}
 		sepIndex := strings.Index(line, "=")
 		if sepIndex == -1 {
 			DebugF("properties file parse failed :[%s]:%d:%s\n", locate, i, line)

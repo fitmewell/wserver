@@ -53,7 +53,7 @@ func (h *wHandler) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 			if e, ok := err.(*StatusError); ok {
 				switch e.statusCode {
 				case STATUS_UNAUTHORIZED.statusCode:
-					http.Redirect(resp, req, "/", 301)
+					http.Redirect(resp, req, "/", STATUS_UNAUTHORIZED.statusCode)
 				default:
 					http.Error(resp, e.statusMessage, e.statusCode)
 				}
