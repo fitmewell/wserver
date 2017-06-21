@@ -171,7 +171,7 @@ func getParameterValues(object interface{}, names string) interface{} {
 	splitIndex := strings.Index(names, ".")
 	if splitIndex > 0 {
 		name = names[0:splitIndex]
-		restName = names[splitIndex+1:]
+		restName = names[splitIndex + 1:]
 	}
 	name = strings.ToUpper(name[0:1]) + name[1:]
 
@@ -203,7 +203,11 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 	if err != nil {
 		return err
 	}
-
+	var valueCache = make([][]byte, len(rowColumns))
+	var interfaceCache = make([]interface{}, len(rowColumns))
+	for i := range valueCache {
+		interfaceCache[i] = &valueCache[i]
+	}
 	typeOfBean := reflect.TypeOf(v)
 	valueOfBean := reflect.ValueOf(v)
 
@@ -219,184 +223,103 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 		}
 		valueOfBean = valueOfBean.Elem()
 	}
-	isArray := typeOfBean.Kind() == reflect.Array || typeOfBean.Kind() == reflect.Slice
-	if isArray {
-		itemType = typeOfBean.Elem()
-	} else {
-		itemType = typeOfBean
-	}
-	actualType := itemType
-	for actualType.Kind() == reflect.Ptr {
-		actualType = actualType.Elem()
-	}
 
 	var columnCache []int
-
-	switch actualType.Kind() {
-	case reflect.Interface:
-		actualType = reflect.TypeOf((*map[string]interface{})(nil)).Elem()
+	switch typeOfBean.Kind() {
+	case reflect.Slice:
 		fallthrough
-	case reflect.Map:
-	case reflect.Struct:
-		fallthrough
-	case reflect.Ptr:
-		columnCache, err = getMatchedColumns(actualType, rowColumns)
-		if err != nil {
-			return err
+	case reflect.Array:
+		itemType = typeOfBean.Elem()
+		actualType := itemType
+		for actualType.Kind() == reflect.Ptr {
+			actualType = actualType.Elem()
 		}
-	default:
-		if len(rowColumns) == 1 {
-		} else {
-			return errors.New("unknown input type:" + actualType.Kind().String())
-		}
-	}
-
-	var valueCache = make([][]byte, len(rowColumns))
-	var interfaceCache = make([]interface{}, len(rowColumns))
-	for i := range valueCache {
-		interfaceCache[i] = &valueCache[i]
-	}
-
-	for rows.Next() {
-		err := rows.Scan(interfaceCache...)
-		if err != nil {
-			return err
-		}
-		var itemBean reflect.Value
-		if isArray {
-			itemBean = reflect.New(itemType).Elem()
-		} else {
-			itemBean = valueOfBean
-		}
-		actualBean := itemBean
-
-		if actualBean.Kind() == reflect.Ptr {
-			if actualBean.IsNil() {
-				actualBean.Set(reflect.New(actualBean.Type().Elem()))
+		if actualType.Kind() == reflect.Struct {
+			columnCache, err = getMatchedColumns(actualType, rowColumns)
+			if err != nil {
+				return err
 			}
-			actualBean = actualBean.Elem()
 		}
-
-		if actualBean.Kind() == reflect.Interface || actualBean.Kind() == reflect.Map {
-
-			tMap := reflect.MakeMap(actualType)
-			for i, name := range rowColumns {
-				tMap.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(string(valueCache[i])))
+		for rows.Next() {
+			err = rows.Scan(interfaceCache...)
+			if err != nil {
+				return err
 			}
-			actualBean.Set(tMap)
-		} else if len(rowColumns) == 1 && actualType.Kind() != reflect.Struct {
+			itemBean := reflect.New(itemType).Elem()
+			actualBean := itemBean
+			if actualBean.Kind() == reflect.Ptr {
+				if actualBean.IsNil() {
+					actualBean.Set(reflect.New(actualBean.Type().Elem()))
+				}
+				actualBean = actualBean.Elem()
+			}
 			switch actualType.Kind() {
-			case reflect.String:
-				actualBean.SetString(string(valueCache[0]))
-			case reflect.Int:
+			case reflect.Interface:
+				actualType = reflect.TypeOf(map[string]interface{}{})
 				fallthrough
-			case reflect.Int64:
-				fallthrough
-			case reflect.Int32:
-				intValue, err := strconv.ParseInt(string(valueCache[0]), 10, 0)
-				if err != nil {
-					return err
+			case reflect.Map:
+				tMap := reflect.MakeMap(actualType)
+				for i, name := range rowColumns {
+					tMap.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(string(valueCache[i])))
 				}
-				actualBean.SetInt(intValue)
-			case reflect.Bool:
-				boolValue, err := strconv.ParseBool(string(valueCache[0]))
-				if err != nil {
-					return err
-				}
-				actualBean.SetBool(boolValue)
-			case reflect.Float32:
-				fallthrough
-			case reflect.Float64:
-				floatValue, err := strconv.ParseFloat(string(valueCache[0]), 0)
-				if err != nil {
-					return err
-				}
-				actualBean.SetFloat(floatValue)
-			//case reflect.Struct:
-			//	switch valueOfInnerBean.Type() {
-			//	case timeType:
-			//		//Mon Jan 2 15:04:05 -0700 MST 2006
-			//		timePattern := actualType.Field(columnIndex).Tag.Get("pattern")
-			//		if value == nil || len(value) == 0 {
-			//			continue
-			//		}
-			//		if timePattern == "" {
-			//			timePattern = default_time_pattern
-			//		}
-			//		timeValue, err := time.Parse(timePattern, string(value))
-			//		if err != nil {
-			//			return err
-			//		}
-			//		columnField.Set(reflect.ValueOf(timeValue))
-			//	default:
-			//		log.Print(columnField.Type())
-			//	}
+				actualBean.Set(tMap)
+			case reflect.Struct :
+				fillStruct(valueCache, columnCache, actualBean)
 			default:
-				log.Print("new Kind found not matched :" + actualType.String())
-			}
-		} else {
-			for i, value := range valueCache {
-				if columnIndex := columnCache[i]; columnIndex != -1 {
-					columnField := actualBean.Field(columnIndex)
-					columnFieldKind := columnField.Type().Kind()
-					switch columnFieldKind {
+				if len(rowColumns) == 1 {
+					switch actualType.Kind() {
 					case reflect.String:
-						columnField.SetString(string(value))
+						actualBean.SetString(string(valueCache[0]))
 					case reflect.Int:
 						fallthrough
 					case reflect.Int64:
 						fallthrough
 					case reflect.Int32:
-						intValue, err := strconv.ParseInt(string(value), 10, 0)
+						intValue, err := strconv.ParseInt(string(valueCache[0]), 10, 0)
 						if err != nil {
 							return err
 						}
-						columnField.SetInt(intValue)
+						actualBean.SetInt(intValue)
 					case reflect.Bool:
-						boolValue, err := strconv.ParseBool(string(value))
+						boolValue, err := strconv.ParseBool(string(valueCache[0]))
 						if err != nil {
 							return err
 						}
-						columnField.SetBool(boolValue)
+						actualBean.SetBool(boolValue)
 					case reflect.Float32:
 						fallthrough
 					case reflect.Float64:
-						floatValue, err := strconv.ParseFloat(string(value), 0)
+						floatValue, err := strconv.ParseFloat(string(valueCache[0]), 0)
 						if err != nil {
 							return err
 						}
-						columnField.SetFloat(floatValue)
-					case reflect.Struct:
-						switch columnField.Type() {
-						case timeType:
-							//Mon Jan 2 15:04:05 -0700 MST 2006
-							timePattern := actualType.Field(columnIndex).Tag.Get("pattern")
-							if value == nil || len(value) == 0 {
-								continue
-							}
-							if timePattern == "" {
-								timePattern = default_time_pattern
-							}
-							timeValue, err := time.Parse(timePattern, string(value))
-							if err != nil {
-								return err
-							}
-							columnField.Set(reflect.ValueOf(timeValue))
-						default:
-							log.Print(columnField.Type())
-						}
+						actualBean.SetFloat(floatValue)
+					//case reflect.Struct:
+					//	switch valueOfInnerBean.Type() {
+					//	case timeType:
+					//		//Mon Jan 2 15:04:05 -0700 MST 2006
+					//		timePattern := actualType.Field(columnIndex).Tag.Get("pattern")
+					//		if value == nil || len(value) == 0 {
+					//			continue
+					//		}
+					//		if timePattern == "" {
+					//			timePattern = default_time_pattern
+					//		}
+					//		timeValue, err := time.Parse(timePattern, string(value))
+					//		if err != nil {
+					//			return err
+					//		}
+					//		columnField.Set(reflect.ValueOf(timeValue))
+					//	default:
+					//		log.Print(columnField.Type())
+					//	}
 					default:
-						log.Print("new Kind found not matched :" + columnFieldKind.String())
+						log.Print("new Kind found not matched :" + actualType.String())
 					}
 				} else {
-					continue
+					return errors.New("unknown input type:" + actualType.Kind().String())
 				}
 			}
-		}
-
-		if isArray == false {
-			return err
-		} else {
 			n := valueOfBean.Len()
 			if n >= valueOfBean.Cap() {
 				c := 2 * n
@@ -410,6 +333,38 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 			valueOfBean.SetLen(n + 1)
 			valueOfBean.Index(n).Set(itemBean)
 		}
+		switch actualType.Kind() {
+
+		}
+	case reflect.Interface:
+		typeOfBean = reflect.TypeOf(map[string]interface{}{})
+		fallthrough
+	case reflect.Map:
+		for rows.Next() {
+			err = rows.Scan(interfaceCache...)
+			if err != nil {
+				return err
+			}
+			tMap := reflect.MakeMap(typeOfBean)
+			for i, name := range rowColumns {
+				tMap.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(string(valueCache[i])))
+			}
+			valueOfBean.Set(tMap)
+		}
+	case reflect.Struct:
+		columnCache, err = getMatchedColumns(typeOfBean, rowColumns)
+		if err != nil {
+			return err
+		}
+		for rows.Next() {
+			err = rows.Scan(interfaceCache...)
+			if err != nil {
+				return err
+			}
+			fillStruct(valueCache, columnCache, valueOfBean)
+		}
+	default:
+		return errors.New("unknown type:" + typeOfBean.Kind().String())
 	}
 	return nil
 }
@@ -444,4 +399,65 @@ func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCach
 		}
 	}
 	return columnCache, err
+}
+
+func fillStruct(valueCache [][]byte, columnCache []int, actualBean reflect.Value) error{
+	for i, value := range valueCache {
+		if columnIndex := columnCache[i]; columnIndex != -1 {
+			columnField := actualBean.Field(columnIndex)
+			columnFieldKind := columnField.Type().Kind()
+			switch columnFieldKind {
+			case reflect.String:
+				columnField.SetString(string(value))
+			case reflect.Int:
+				fallthrough
+			case reflect.Int64:
+				fallthrough
+			case reflect.Int32:
+				intValue, err := strconv.ParseInt(string(value), 10, 0)
+				if err != nil {
+					return err
+				}
+				columnField.SetInt(intValue)
+			case reflect.Bool:
+				boolValue, err := strconv.ParseBool(string(value))
+				if err != nil {
+					return err
+				}
+				columnField.SetBool(boolValue)
+			case reflect.Float32:
+				fallthrough
+			case reflect.Float64:
+				floatValue, err := strconv.ParseFloat(string(value), 0)
+				if err != nil {
+					return err
+				}
+				columnField.SetFloat(floatValue)
+			case reflect.Struct:
+				switch columnField.Type() {
+				case timeType:
+					//Mon Jan 2 15:04:05 -0700 MST 2006
+					timePattern := actualBean.Type().Field(columnIndex).Tag.Get("pattern")
+					if value == nil || len(value) == 0 {
+						continue
+					}
+					if timePattern == "" {
+						timePattern = default_time_pattern
+					}
+					timeValue, err := time.Parse(timePattern, string(value))
+					if err != nil {
+						return err
+					}
+					columnField.Set(reflect.ValueOf(timeValue))
+				default:
+					log.Print(columnField.Type())
+				}
+			default:
+				log.Print("new Kind found not matched :" + columnFieldKind.String())
+			}
+		} else {
+			continue
+		}
+	}
+	return nil
 }
