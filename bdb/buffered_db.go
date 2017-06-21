@@ -211,31 +211,44 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 		return errors.New("not ptr or point to nil")
 	}
 
-	var actualType reflect.Type
+	var itemType reflect.Type
 	for typeOfBean.Kind() == reflect.Ptr {
 		typeOfBean = typeOfBean.Elem()
+		if valueOfBean.IsNil() {
+			valueOfBean.Set(reflect.New(valueOfBean.Type().Elem()))
+		}
 		valueOfBean = valueOfBean.Elem()
 	}
 	isArray := typeOfBean.Kind() == reflect.Array || typeOfBean.Kind() == reflect.Slice
 	if isArray {
-		actualType = typeOfBean.Elem()
+		itemType = typeOfBean.Elem()
 	} else {
-		actualType = typeOfBean
+		itemType = typeOfBean
+	}
+	actualType := itemType
+	for actualType.Kind() == reflect.Ptr {
+		actualType = actualType.Elem()
 	}
 
 	var columnCache []int
 
-	if actualType.Kind() == reflect.Interface {
+	switch actualType.Kind() {
+	case reflect.Interface:
 		actualType = reflect.TypeOf((*map[string]interface{})(nil)).Elem()
-	} else if actualType.Kind() == reflect.Map {
-	} else if actualType.Kind() == reflect.Struct {
+		fallthrough
+	case reflect.Map:
+	case reflect.Struct:
+		fallthrough
+	case reflect.Ptr:
 		columnCache, err = getMatchedColumns(actualType, rowColumns)
 		if err != nil {
 			return err
 		}
-	} else if len(rowColumns) == 1 {
-	} else {
-		return errors.New("unknown input type:" + actualType.Kind().String())
+	default:
+		if len(rowColumns) == 1 {
+		} else {
+			return errors.New("unknown input type:" + actualType.Kind().String())
+		}
 	}
 
 	var valueCache = make([][]byte, len(rowColumns))
@@ -249,24 +262,32 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 		if err != nil {
 			return err
 		}
-		var valueOfInnerBean reflect.Value
+		var itemBean reflect.Value
 		if isArray {
-			valueOfInnerBean = reflect.New(actualType).Elem()
+			itemBean = reflect.New(itemType).Elem()
 		} else {
-			valueOfInnerBean = valueOfBean
+			itemBean = valueOfBean
+		}
+		actualBean := itemBean
+
+		if actualBean.Kind() == reflect.Ptr {
+			if actualBean.IsNil() {
+				actualBean.Set(reflect.New(actualBean.Type().Elem()))
+			}
+			actualBean = actualBean.Elem()
 		}
 
-		if actualType.Kind() == reflect.Interface || actualType.Kind() == reflect.Map {
+		if actualBean.Kind() == reflect.Interface || actualBean.Kind() == reflect.Map {
+
+			tMap := reflect.MakeMap(actualType)
 			for i, name := range rowColumns {
-				if valueOfInnerBean.IsNil() {
-					valueOfInnerBean.Set(reflect.MakeMap(actualType))
-				}
-				valueOfInnerBean.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(string(valueCache[i])))
+				tMap.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(string(valueCache[i])))
 			}
+			actualBean.Set(tMap)
 		} else if len(rowColumns) == 1 && actualType.Kind() != reflect.Struct {
 			switch actualType.Kind() {
 			case reflect.String:
-				valueOfInnerBean.SetString(string(valueCache[0]))
+				actualBean.SetString(string(valueCache[0]))
 			case reflect.Int:
 				fallthrough
 			case reflect.Int64:
@@ -276,13 +297,13 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 				if err != nil {
 					return err
 				}
-				valueOfInnerBean.SetInt(intValue)
+				actualBean.SetInt(intValue)
 			case reflect.Bool:
 				boolValue, err := strconv.ParseBool(string(valueCache[0]))
 				if err != nil {
 					return err
 				}
-				valueOfInnerBean.SetBool(boolValue)
+				actualBean.SetBool(boolValue)
 			case reflect.Float32:
 				fallthrough
 			case reflect.Float64:
@@ -290,7 +311,7 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 				if err != nil {
 					return err
 				}
-				valueOfInnerBean.SetFloat(floatValue)
+				actualBean.SetFloat(floatValue)
 			//case reflect.Struct:
 			//	switch valueOfInnerBean.Type() {
 			//	case timeType:
@@ -316,7 +337,7 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 		} else {
 			for i, value := range valueCache {
 				if columnIndex := columnCache[i]; columnIndex != -1 {
-					columnField := valueOfInnerBean.Field(columnIndex)
+					columnField := actualBean.Field(columnIndex)
 					columnFieldKind := columnField.Type().Kind()
 					switch columnFieldKind {
 					case reflect.String:
@@ -387,7 +408,7 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 				valueOfBean.Set(newSlice)
 			}
 			valueOfBean.SetLen(n + 1)
-			valueOfBean.Index(n).Set(valueOfInnerBean)
+			valueOfBean.Index(n).Set(itemBean)
 		}
 	}
 	return nil
