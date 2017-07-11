@@ -4,6 +4,7 @@ import (
 	"github.com/fitmewell/wserver/bdb"
 	"github.com/fitmewell/wserver/wsession"
 	"io"
+	"sync"
 )
 
 type ServletContext interface {
@@ -26,6 +27,7 @@ type DefaultServletContext struct {
 	ServerContext ServerContext
 	Session       wsession.Session
 	data          map[string]interface{}
+	lock          sync.RWMutex
 }
 
 func (defaultContext *DefaultServletContext) GetDb() bdb.BufferedDB {
@@ -53,6 +55,8 @@ func (defaultContext *DefaultServletContext) GetData() map[string]interface{} {
 }
 
 func (defaultContext *DefaultServletContext) SetData(key string, value interface{}) {
+	defaultContext.lock.Lock()
+	defer defaultContext.lock.Unlock()
 	defaultContext.data[key] = value
 }
 
