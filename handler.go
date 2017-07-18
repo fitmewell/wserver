@@ -24,10 +24,10 @@ func (h *wHandler) init() {
 	for _, resource := range h.wServer.config.StaticResources {
 		path := resource.Path
 		if strings.HasSuffix(path, "**") {
-			path = path[0: len(path)-2]
+			path = path[0 : len(path)-2]
 		}
 		if strings.HasSuffix(path, "*") {
-			path = path[0: len(path)-1]
+			path = path[0 : len(path)-1]
 		}
 		t := http.StripPrefix(path, http.FileServer(http.Dir(resource.FileLocate)))
 		DebugF("Severing static files: %s %s", path, resource.FileLocate)
@@ -157,6 +157,7 @@ func (h *wHandler) handle(context ServletContext, resp http.ResponseWriter, req 
 			}
 			inputs[i] = reflect.ValueOf(string(b))
 		case reflect.Slice:
+			fallthrough
 		case reflect.Array:
 			b, err := ioutil.ReadAll(req.Body)
 			if err != nil {
