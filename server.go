@@ -25,6 +25,7 @@ func NewPortServer(port string) (wServer *Server) {
 	config := &ServerConfig{Port: port}
 	return NewServer(config)
 }
+
 func NewServer(config *ServerConfig) *Server {
 	server := &Server{
 		config:         config,
@@ -92,30 +93,6 @@ func (ws *Server) listen() {
 	}
 }
 
-//'method' support method , use * to support all method
-//'path' path
-//'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct server context
-func (ws *Server) AddHandler(method string, path string, e interface{}) *Server {
-	ws.handler.addHandler(method, path, e)
-	DebugF("Listening:[%s]\t[%s]\t{%v}", path, method, e)
-	return ws
-}
-
-func (ws *Server) AddStaticSource(path, fileLocate string) *Server {
-	ws.config.StaticResources = append(ws.config.StaticResources, StaticResource{Path: path, FileLocate: fileLocate})
-	return ws
-}
-
-func (ws *Server) AddTemplate(name, dir string) *Server {
-	ws.config.Templates = append(ws.config.Templates, Template{Name: name, Dir: dir})
-	return ws
-}
-
-func (ws *Server) AddAspectHandler(handler AspectHandler) *Server {
-	ws.handler.addAspect(handler)
-	return ws
-}
-
 func (ws *Server) aftermath() {
 	s := make(chan os.Signal, 2)
 	signal.Notify(s)
@@ -161,6 +138,30 @@ func (ws *Server) aftermath() {
 			}
 		}
 	}()
+}
+
+//'method' support method , use * to support all method
+//'path' path
+//'e' handler method , the server will auto handle the return value , the method parameter support *http.Request ,http.ResponseWriter, custom struct server context
+func (ws *Server) AddHandler(method string, path string, e interface{}) *Server {
+	ws.handler.addHandler(method, path, e)
+	DebugF("Listening:[%s]\t[%s]\t{%v}", path, method, e)
+	return ws
+}
+
+func (ws *Server) AddStaticSource(path, fileLocate string) *Server {
+	ws.config.StaticResources = append(ws.config.StaticResources, StaticResource{Path: path, FileLocate: fileLocate})
+	return ws
+}
+
+func (ws *Server) AddTemplate(name, dir string) *Server {
+	ws.config.Templates = append(ws.config.Templates, Template{Name: name, Dir: dir})
+	return ws
+}
+
+func (ws *Server) AddAspectHandler(handler AspectHandler) *Server {
+	ws.handler.addAspect(handler)
+	return ws
 }
 
 func (ws *Server) AddAftermath(name string, method func()) error {

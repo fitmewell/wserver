@@ -171,7 +171,7 @@ func getParameterValues(object interface{}, names string) interface{} {
 	splitIndex := strings.Index(names, ".")
 	if splitIndex > 0 {
 		name = names[0:splitIndex]
-		restName = names[splitIndex + 1:]
+		restName = names[splitIndex+1:]
 	}
 	name = strings.ToUpper(name[0:1]) + name[1:]
 
@@ -263,7 +263,7 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 					tMap.SetMapIndex(reflect.ValueOf(name), reflect.ValueOf(string(valueCache[i])))
 				}
 				actualBean.Set(tMap)
-			case reflect.Struct :
+			case reflect.Struct:
 				fillStruct(valueCache, columnCache, actualBean)
 			default:
 				if len(rowColumns) == 1 {
@@ -401,7 +401,7 @@ func getMatchedColumns(actualType reflect.Type, rowColumns []string) (columnCach
 	return columnCache, err
 }
 
-func fillStruct(valueCache [][]byte, columnCache []int, actualBean reflect.Value) error{
+func fillStruct(valueCache [][]byte, columnCache []int, actualBean reflect.Value) error {
 	for i, value := range valueCache {
 		if columnIndex := columnCache[i]; columnIndex != -1 {
 			columnField := actualBean.Field(columnIndex)
