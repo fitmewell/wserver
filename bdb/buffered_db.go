@@ -33,6 +33,10 @@ type BufferedDB interface {
 	BeginTransactional() (BufferedTransactional, error)
 }
 
+type txManager interface {
+	Prepare(query string) (*sql.Stmt, error)
+}
+
 type BufferedTransactional interface {
 	//extend from buffered state
 	BufferedState
@@ -49,11 +53,12 @@ const default_time_pattern = "2006-01-02 15:04:05"
 var timeType = reflect.TypeOf(time.Time{})
 
 type defaultBdb struct {
-	*sql.DB
+	txManager
 	preparedStmtMap map[string]*sql.Stmt
 }
 
 type defaultBtx struct {
+	defaultBdb
 	*sql.Tx
 }
 
@@ -104,38 +109,16 @@ func (tdb *defaultBdb) SelectInInterfaceAuto(sequence string, out interface{}, i
 }
 
 func (tdb *defaultBdb) BeginTransactional() (BufferedTransactional, error) {
-	t, e := tdb.Begin()
-	return &defaultBtx{t}, e
-}
-
-func (btx *defaultBtx) SelectInInterface(sqlSequence string, v interface{}, parameters ...interface{}) error {
-	sqlStmt, err := btx.getPreparedStatement(sqlSequence)
-	if err != nil {
-		return err
+	s, ok := tdb.txManager.(*sql.DB)
+	if !ok {
+		return nil, nil
 	}
-	return selectInInterface(sqlStmt, v, parameters...)
+	t, e := s.Begin()
+	return &defaultBtx{defaultBdb{t,map[string]*sql.Stmt{}}, t}, e
 }
 
 func (btx *defaultBtx) getPreparedStatement(sqlSentence string) (*sql.Stmt, error) {
 	return btx.Prepare(sqlSentence)
-}
-
-func (btx *defaultBtx) ExecutePreparedSql(sqlState string, parameters ...interface{}) (sql.Result, error) {
-	sqlStmt, err := btx.getPreparedStatement(sqlState)
-	if err != nil {
-		return nil, err
-	}
-	return sqlStmt.Exec(parameters...)
-}
-
-func (btx *defaultBtx) ExecuteDbSequence(sequence string, parameter interface{}) (sql.Result, error) {
-	sequence, parameters := parseInput(sequence, parameter)
-	return btx.ExecutePreparedSql(sequence, parameters...)
-}
-
-func (btx *defaultBtx) SelectInInterfaceAuto(sequence string, out interface{}, in interface{}) error {
-	sequence, parameters := parseInput(sequence, in)
-	return btx.SelectInInterface(sequence, out, parameters...)
 }
 
 func (btx *defaultBtx) Commit() error {
@@ -294,25 +277,25 @@ func selectInInterface(sqlStmt *sql.Stmt, v interface{}, parameters ...interface
 							return err
 						}
 						actualBean.SetFloat(floatValue)
-					//case reflect.Struct:
-					//	switch valueOfInnerBean.Type() {
-					//	case timeType:
-					//		//Mon Jan 2 15:04:05 -0700 MST 2006
-					//		timePattern := actualType.Field(columnIndex).Tag.Get("pattern")
-					//		if value == nil || len(value) == 0 {
-					//			continue
-					//		}
-					//		if timePattern == "" {
-					//			timePattern = default_time_pattern
-					//		}
-					//		timeValue, err := time.Parse(timePattern, string(value))
-					//		if err != nil {
-					//			return err
-					//		}
-					//		columnField.Set(reflect.ValueOf(timeValue))
-					//	default:
-					//		log.Print(columnField.Type())
-					//	}
+						//case reflect.Struct:
+						//	switch valueOfInnerBean.Type() {
+						//	case timeType:
+						//		//Mon Jan 2 15:04:05 -0700 MST 2006
+						//		timePattern := actualType.Field(columnIndex).Tag.Get("pattern")
+						//		if value == nil || len(value) == 0 {
+						//			continue
+						//		}
+						//		if timePattern == "" {
+						//			timePattern = default_time_pattern
+						//		}
+						//		timeValue, err := time.Parse(timePattern, string(value))
+						//		if err != nil {
+						//			return err
+						//		}
+						//		columnField.Set(reflect.ValueOf(timeValue))
+						//	default:
+						//		log.Print(columnField.Type())
+						//	}
 					default:
 						log.Print("new Kind found not matched :" + actualType.String())
 					}
